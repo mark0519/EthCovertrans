@@ -110,7 +110,7 @@ func GetMainKey() [32]byte {
 	}
 }
 
-func GetTransKey(mainKey [32]byte, transactionHash string) [32]byte {
+func GetTransKey(mainKey [32]byte, transactionHash string) []byte {
 	// 使用pbkdf2密钥派生算法计算每次的通信密钥tansKey
 
 	// transactionHash就是上次交易的Transaction Hash
@@ -127,7 +127,7 @@ func GetTransKey(mainKey [32]byte, transactionHash string) [32]byte {
 	newMainKey := mainKey[:]
 	// pbkdf2密钥派生算法，迭代次数4，迭代方式Sha256,得到每次交易密钥长度32
 	transKey := pbkdf2.Key(newMainKey, newToken, 4, 32, sha256.New)
-	return [32]byte(transKey)
+	return transKey
 }
 
 func getMainKey() {
