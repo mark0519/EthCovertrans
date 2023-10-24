@@ -2,10 +2,12 @@ package main
 
 import (
 	"EthCovertrans/src/allcrypto"
+	"EthCovertrans/src/ethio"
 	"context"
 	"encoding/hex"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
 	"strconv"
@@ -21,13 +23,30 @@ func main() {
 	//client := initEthClient()
 	//testGetBalance(client) // 检查和ETH网关（gateway）的连接
 
-	sharedData := sharedData{
-		pubKeyStr: "04023b1d8cfbdfe2c5fb8cf1623bb5766c57c8458bad2f6ab2f4cecd70ad682b9de61c22438917d9ee2059f84b604b982ed375b596f3940461076851b60e0a191e",
-		psk:       "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-		n:         2,
-	}
-	msgData := "Hello World"
-	sender(sharedData, msgData)
+	//sharedData := sharedData{
+	//	pubKeyStr: "04023b1d8cfbdfe2c5fb8cf1623bb5766c57c8458bad2f6ab2f4cecd70ad682b9de61c22438917d9ee2059f84b604b982ed375b596f3940461076851b60e0a191e",
+	//	psk:       "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+	//	n:         2,
+	//}
+	//msgData := "Hello World"
+	//sender(sharedData, msgData)
+	testETHIO()
+
+}
+
+func testETHIO() {
+	io := ethio.ETHSender{}
+	// Sender 账户私钥
+	testKey := "03abf809c1054777389bbbd53ad700a2d94e40fca4588cf5cec7e298fed8e7a2"
+	senderPrivKey := crypto.ToECDSAUnsafe(common.FromHex(testKey))
+
+	// ETHSender初始化
+	io.NewETHSender(*senderPrivKey)
+
+	//// 发送信息，目标地址是0xa4528e245F87CBA1D650403d196eF505EE4D0a2B
+	//targetAddr := common.HexToAddress("0xa4528e245F87CBA1D650403d196eF505EE4D0a2B")
+	//txHash := io.SendMsg(targetAddr)
+	//fmt.Println("txHash:", txHash)
 
 }
 
@@ -71,7 +90,7 @@ func initEthClient() *ethclient.Client {
 }
 
 func testGetBalance(c *ethclient.Client) {
-	addr := "0xa4528e245F87CBA1D650403d196eF505EE4D0a2B"
+	addr := "0xA30eD0304FA1314D1CA7646e08763c446A6dF86A"
 	account := common.HexToAddress(addr)
 	balance, err := c.BalanceAt(context.Background(), account, nil)
 	if err != nil {
