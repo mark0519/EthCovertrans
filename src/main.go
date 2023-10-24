@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
+	"strconv"
 )
 
 type sharedData struct {
@@ -25,26 +26,39 @@ func main() {
 		psk:       "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
 		n:         2,
 	}
-
-	sender(sharedData)
+	msgData := "Hello World"
+	sender(sharedData, msgData)
 
 }
 
-func sender(data sharedData) {
+func sender(data sharedData, msgData string) {
 	// Private Key: 0x93d5d04256882aaad507ff09f510969f347758109793448aa79e1b4dbe5f6efa
 	// Public Key : 0x04023b1d8cfbdfe2c5fb8cf1623bb5766c57c8458bad2f6ab2f4cecd70ad682b9de61c22438917d9ee2059f84b604b982ed375b596f3940461076851b60e0a191e
 	// Address    : 0xa4528e245F87CBA1D650403d196eF505EE4D0a2B
-	PrivateKeyStr := "93d5d04256882aaad507ff09f510969f347758109793448aa79e1b4dbe5f6efa"
-	sk, _ := hex.DecodeString(PrivateKeyStr)
+	//PrivateKeyStr := "93d5d04256882aaad507ff09f510969f347758109793448aa79e1b4dbe5f6efa"
+	//sk, _ := hex.DecodeString(PrivateKeyStr)
 	pskStr := data.psk
 	psk, _ := hex.DecodeString(pskStr)
 	n := data.n // 默认为2
 	addrTable := allcrypto.InitAddrTable(n)
-	times := 20
-	// 预先计算20个地址
-	key := allcrypto.SetAddrDatas(addrTable, sk, psk, n, times)
-	allcrypto.ShowAddrTable(addrTable)
-	fmt.Printf("Netx key: %x\n", key)
+	times := 1
+	// 预先计算100个地址
+	allcrypto.SetAddrDatas(addrTable, psk, n, times)
+	//allcrypto.ShowAddrTable(addrTable)
+
+	for _, char := range msgData {
+		asciiDataBin := int(char)
+		asciiDataBinStr := fmt.Sprintf("%08b", asciiDataBin)
+		fmt.Println("[Sender] msgChar:", char)
+		fmt.Println("[Sender] msgAsciiBin:", asciiDataBinStr)
+		for i := 0; i < 4; i++ {
+			msgInt, _ := strconv.ParseInt(asciiDataBinStr[i*2:(i+1)*2], 2, 64)
+			targetAddr := allcrypto.FindAddr(addrTable, psk, int(msgInt))
+			fmt.Println("[Sender] > send data :", msgInt)
+			fmt.Println("[Sender] > targetAddr:", targetAddr.Address)
+		}
+	}
+
 }
 
 func initEthClient() *ethclient.Client {

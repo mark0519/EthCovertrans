@@ -2,7 +2,9 @@ package allcrypto
 
 import (
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/md5"
+	"crypto/rand"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
@@ -10,9 +12,9 @@ import (
 )
 
 type addrData struct {
-	privateKey []byte
-	publicKey  []byte
-	address    string
+	PrivateKey []byte
+	PublicKey  []byte
+	Address    string
 }
 
 var addrList [][]addrData
@@ -67,7 +69,7 @@ func getListByN(n int) [][]addrData {
 	return rows
 }
 
-func appendListByPriv(table [][]addrData, privKey []byte, psk []byte, n int) [][]addrData {
+func appendListByPriv(table [][]addrData, privKey []byte, psk []byte, n int) byte {
 	// 通过哈希计算 地址集合addrList
 	pubKey := getPubKeyByPriv(privKey)
 	addr := getAddrByPub(pubKey)
@@ -79,15 +81,15 @@ func appendListByPriv(table [][]addrData, privKey []byte, psk []byte, n int) [][
 	//fmt.Printf("%x\n", lowestTwoBits)
 	//fmt.Printf("%x\n", pubKey)
 	addrData := addrData{
-		privateKey: privKey,
-		publicKey:  pubKey,
-		address:    addr,
+		PrivateKey: privKey,
+		PublicKey:  pubKey,
+		Address:    addr,
 	}
 	table[lowestTwoBits] = append(table[lowestTwoBits], addrData)
-	return table
+	return lowestTwoBits
 }
 
-func newPrivKey(oldKey []byte, psk []byte) []byte {
+func nextPrivKey(oldKey []byte, psk []byte) []byte {
 	var oldKeyInt big.Int
 	oldKeyInt.SetBytes(oldKey)
 	var pskInt big.Int
@@ -98,26 +100,54 @@ func newPrivKey(oldKey []byte, psk []byte) []byte {
 	return newKey.Bytes()
 }
 
-func SetAddrDatas(table [][]addrData, privKey []byte, psk []byte, n int, times int) []byte {
-	// 循环计算times次并保存到table里，返回最后一次计算之后的下一次还没使用的私钥
-	key := privKey
+func newPrivKey() []byte {
+	// 随机生成钥对
+	// 生成一个随机的 ECDSA 密钥对
+	privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	// 将私钥转为字节切片
+	privateKeyBytes := crypto.FromECDSA(privateKey)
+	return privateKeyBytes
+}
+
+func SetAddrDatas(table [][]addrData, psk []byte, n int, times int) {
+	// 初始化，循环计算times次并保存到table里
 	for i := 0; i < times; i++ {
+		key := newPrivKey()
 		appendListByPriv(table, key, psk, n)
-		key = newPrivKey(key, psk)
 	}
-	return key
+}
+
+func getAddrDatas(table [][]addrData, psk []byte, n int, ans byte) {
+	// 递归计算新addr,直到符合条件ans
+	key := newPrivKey()
+	res := appendListByPriv(table, key, psk, n)
+	if res != ans {
+		getAddrDatas(table, psk, n, ans)
+	}
+
 }
 
 func ShowAddrTable(table [][]addrData) {
 	for i := range table {
 		fmt.Println("============table[", i, "]==============")
 		for j := range table[i] {
-			fmt.Printf("publicKey :0x%x\n", table[i][j].publicKey)
-			fmt.Printf("privateKey:0x%x\n", table[i][j].privateKey)
-			fmt.Println("Addr      :", table[i][j].address)
+			fmt.Printf("publicKey :0x%x\n", table[i][j].PublicKey)
+			fmt.Printf("privateKey:0x%x\n", table[i][j].PrivateKey)
+			fmt.Println("Addr      :", table[i][j].Address)
 			fmt.Println("---")
 		}
 	}
+}
+
+func FindAddr(table [][]addrData, psk []byte, msgInt int) addrData {
+	// 根据msgInt查找对应的addrData
+	result := table[msgInt]
+	if len(result) == 0 {
+		getAddrDatas(table, psk, 2, byte(msgInt))
+	}
+	popAddrData := table[msgInt][0]
+	table[msgInt] = table[msgInt][1:]
+	return popAddrData
 }
 
 //func getAddrDatas() {
