@@ -2,70 +2,81 @@ package main
 
 import (
 	"EthCovertrans/src/allcrypto"
-	"context"
-	"encoding/hex"
+	"crypto/ecdsa"
+	"crypto/rand"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"log"
+	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 )
-
-type sharedData struct {
-	pubKeyStr string
-	psk       string
-	n         int
-}
 
 func main() {
 	//client := initEthClient()
 	//testGetBalance(client) // 检查和ETH网关（gateway）的连接
 
-	sharedData := sharedData{
-		pubKeyStr: "04023b1d8cfbdfe2c5fb8cf1623bb5766c57c8458bad2f6ab2f4cecd70ad682b9de61c22438917d9ee2059f84b604b982ed375b596f3940461076851b60e0a191e",
-		psk:       "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-		n:         2,
-	}
+	//sharedData := sharedData{
+	//	pubKeyStr: "04023b1d8cfbdfe2c5fb8cf1623bb5766c57c8458bad2f6ab2f4cecd70ad682b9de61c22438917d9ee2059f84b604b982ed375b596f3940461076851b60e0a191e",
+	//	psk:       "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+	//	n:         2,
+	//}
+	//
+	//sender(sharedData)
 
-	sender(sharedData)
-
+	pskInt, _ := rand.Int(rand.Reader, secp256k1.S256().Params().N)
+	psk := pskInt.Bytes()
+	addrTest(psk)
 }
 
-func sender(data sharedData) {
-	// Private Key: 0x93d5d04256882aaad507ff09f510969f347758109793448aa79e1b4dbe5f6efa
-	// Public Key : 0x04023b1d8cfbdfe2c5fb8cf1623bb5766c57c8458bad2f6ab2f4cecd70ad682b9de61c22438917d9ee2059f84b604b982ed375b596f3940461076851b60e0a191e
-	// Address    : 0xa4528e245F87CBA1D650403d196eF505EE4D0a2B
-	PrivateKeyStr := "93d5d04256882aaad507ff09f510969f347758109793448aa79e1b4dbe5f6efa"
-	sk, _ := hex.DecodeString(PrivateKeyStr)
-	pskStr := data.psk
-	psk, _ := hex.DecodeString(pskStr)
-	n := data.n // 默认为2
-	addrTable := allcrypto.InitAddrTable(n)
-	times := 20
-	// 预先计算20个地址
-	key := allcrypto.SetAddrDatas(addrTable, sk, psk, n, times)
-	allcrypto.ShowAddrTable(addrTable)
-	fmt.Printf("Netx key: %x\n", key)
+func addrTest(psk []byte) {
+	rt := allcrypto.InitRecvAddrTable(2)
+	rt.FillRecvAddrTable(psk, 20)
+	rt.ShowRecvAddrTable()
+
+	sk1 := allcrypto.NewPrivateKey()
+	sk2 := allcrypto.DerivationPrivateKey(sk1, psk)
+	pk1 := sk1.Public().(*ecdsa.PublicKey)
+
+	pk2_fromsk2 := sk2.Public()
+	pk2_frompk1 := allcrypto.DerivationPublicKey(pk1, psk)
+
+	fmt.Printf("pk2_fromsk2:%v\n", pk2_fromsk2)
+	fmt.Printf("pk2_frompk1:%v\n", pk2_frompk1)
 }
 
-func initEthClient() *ethclient.Client {
-	client, err := ethclient.Dial("https://sut0ne.tk/v1/sepolia")
-	//client, err := ethclient.Dial("https://cloudflare-eth.com")
-	if err != nil {
-		log.Fatal(err)
-	}
-	return client
-}
-
-func testGetBalance(c *ethclient.Client) {
-	addr := "0xa4528e245F87CBA1D650403d196eF505EE4D0a2B"
-	account := common.HexToAddress(addr)
-	balance, err := c.BalanceAt(context.Background(), account, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("Account: %s\n", account)
-	fmt.Printf("Balance: %d wei\n", balance)
-}
+//func sender(data sharedData) {
+//	// Private Key: 0x93d5d04256882aaad507ff09f510969f347758109793448aa79e1b4dbe5f6efa
+//	// Public Key : 0x04023b1d8cfbdfe2c5fb8cf1623bb5766c57c8458bad2f6ab2f4cecd70ad682b9de61c22438917d9ee2059f84b604b982ed375b596f3940461076851b60e0a191e
+//	// Address    : 0xa4528e245F87CBA1D650403d196eF505EE4D0a2B
+//	PrivateKeyStr := "93d5d04256882aaad507ff09f510969f347758109793448aa79e1b4dbe5f6efa"
+//	sk, _ := hex.DecodeString(PrivateKeyStr)
+//	pskStr := data.psk
+//	psk, _ := hex.DecodeString(pskStr)
+//	n := data.n // 默认为2
+//	addrTable := allcrypto.InitAddrTable(n)
+//	times := 20
+//	// 预先计算20个地址
+//	key := allcrypto.SetAddrDatas(addrTable, sk, psk, n, times)
+//	allcrypto.ShowAddrTable(addrTable)
+//	fmt.Printf("Netx key: %x\n", key)
+//}
+//
+//func initEthClient() *ethclient.Client {
+//	client, err := ethclient.Dial("https://sut0ne.tk/v1/sepolia")
+//	//client, err := ethclient.Dial("https://cloudflare-eth.com")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	return client
+//}
+//
+//func testGetBalance(c *ethclient.Client) {
+//	addr := "0xa4528e245F87CBA1D650403d196eF505EE4D0a2B"
+//	account := common.HexToAddress(addr)
+//	balance, err := c.BalanceAt(context.Background(), account, nil)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	fmt.Printf("Account: %s\n", account)
+//	fmt.Printf("Balance: %d wei\n", balance)
+//}
 
 //func createMsgAccount(key []byte) (common.Address, ecdsa.PublicKey) {
 //	// 假设你有一个 Ethereum 私钥 key,用来他生成公钥并计算钱包地址
