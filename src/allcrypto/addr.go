@@ -1,6 +1,8 @@
 package allcrypto
 
-import "crypto/ecdsa"
+import (
+	"crypto/ecdsa"
+)
 
 type addrData struct {
 	publicKey ecdsa.PublicKey
