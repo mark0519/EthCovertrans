@@ -8,12 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 )
 
-type sharedData struct {
-	pubKeyStr string
-	psk       string
-	n         int
-}
-
 func main() {
 	//client := initEthClient()
 	//testGetBalance(client) // 检查和ETH网关（gateway）的连接
