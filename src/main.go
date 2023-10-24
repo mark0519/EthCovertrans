@@ -43,10 +43,11 @@ func testETHIO() {
 	// ETHSender初始化
 	io.NewETHSender(*senderPrivKey)
 
-	//// 发送信息，目标地址是0xa4528e245F87CBA1D650403d196eF505EE4D0a2B
-	//targetAddr := common.HexToAddress("0xa4528e245F87CBA1D650403d196eF505EE4D0a2B")
-	//txHash := io.SendMsg(targetAddr)
-	//fmt.Println("txHash:", txHash)
+	// 发送信息，目标地址是0xa4528e245F87CBA1D650403d196eF505EE4D0a2B
+	targetAddr := common.HexToAddress("0xa4528e245F87CBA1D650403d196eF505EE4D0a2B")
+	txHash := io.SendMsg(targetAddr)
+	fmt.Println("[Sender] txHash:", txHash)
+	ethio.GetReceiverBySenderAddr(common.HexToAddress("0xd0daAF87Bf3b73EB94BdCf70d9f49DA805c75641"))
 
 }
 
@@ -81,8 +82,8 @@ func sender(data sharedData, msgData string) {
 }
 
 func initEthClient() *ethclient.Client {
-	client, err := ethclient.Dial("https://sut0ne.tk/v1/sepolia")
-	//client, err := ethclient.Dial("https://cloudflare-eth.com")
+	//client, err := ethclient.Dial("https://sut0ne.tk/v1/sepolia")
+	client, err := ethclient.Dial("https://eth-sepolia.g.alchemy.com/v2/KvQyzbw_h3XnPpqfWoZ9GcvPAB0iPoDk")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -90,7 +91,7 @@ func initEthClient() *ethclient.Client {
 }
 
 func testGetBalance(c *ethclient.Client) {
-	addr := "0xA30eD0304FA1314D1CA7646e08763c446A6dF86A"
+	addr := "0x0477a578618bB6E33AB017b441275d86C3E9a165"
 	account := common.HexToAddress(addr)
 	balance, err := c.BalanceAt(context.Background(), account, nil)
 	if err != nil {

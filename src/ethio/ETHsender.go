@@ -3,7 +3,6 @@ package ethio
 import (
 	"context"
 	"crypto/ecdsa"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -37,8 +36,9 @@ func (esdr *ETHSender) NewETHSender(privKey ecdsa.PrivateKey) {
 	// privKey是发送方的私钥
 
 	// client初始化
-	c, err := ethclient.Dial("https://sut0ne.tk/v1/sepolia")
-	//client, err := ethclient.Dial("https://cloudflare-eth.com")
+	//c, err := ethclient.Dial("https://sut0ne.tk/v1/sepolia")
+	c, err := ethclient.Dial("https://eth-sepolia.g.alchemy.com/v2/KvQyzbw_h3XnPpqfWoZ9GcvPAB0iPoDk")
+	//c, err := ethclient.Dial("https://cloudflare-eth.com")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,11 +74,11 @@ func (esdr *ETHSender) getBalance(account common.Address) {
 		log.Printf("[Sender] Request Faucets ...")
 
 		// 请求faucet，获得400000000000000单位gas，返回交易哈希
-		txHash := esdr.createTx(esdr.faucetAc, targetAccount(esdr.senderAc), big.NewInt(400000000000000))
+		txHash := esdr.createTx(esdr.faucetAc, targetAccount(esdr.senderAc), big.NewInt(40000000000))
 		log.Printf("[Sender] Request Faucets TxHash: %s\n", txHash)
 
 		// 查询余额，如果还是0，递归请求faucet
-		//esdr.getBalance(account)
+		esdr.getBalance(account)
 	} else {
 		log.Printf("[Sender] Sender Balance: %d wei\n", balance)
 	}
@@ -110,11 +110,11 @@ func (esdr *ETHSender) createTx(fromAC senderAccount, toAC targetAccount, value 
 
 	// 获取gasPrice
 	gasPrice, err := esdr.client.SuggestGasPrice(context.Background())
-	gasPrice = gasPrice.Mul(gasPrice, big.NewInt(3*75000))
+	//gasPrice = gasPrice.Mul(gasPrice, big.NewInt(3*75000))
 	if err != nil {
 		log.Fatal("[Sender]", err)
 	}
-	fmt.Println(gasPrice)
+	//fmt.Println(gasPrice)
 	// 设置gas上限
 	gasLimit := uint64(25000)
 
