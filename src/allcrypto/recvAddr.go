@@ -4,7 +4,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
-	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -12,25 +11,25 @@ type recvAddrData struct {
 	addrData
 }
 
-type RecvAddrTable struct {
+type recvAddrTable struct {
 	table [][]recvAddrData
 	n     int // 交易嵌入位数
 }
 
-func InitRecvAddrTable(n int) *RecvAddrTable {
+func initRecvAddrTable(n int) *recvAddrTable {
 	sum := 1 << n                        // 2的n次幂
 	table := make([][]recvAddrData, sum) // 创建sum行切片
 	for i := range table {
 		// 为每一行创建一个切片，可以根据需要指定初始长度
 		table[i] = make([]recvAddrData, 0) // 这里初始长度为 0
 	}
-	return &RecvAddrTable{
+	return &recvAddrTable{
 		table: table,
 		n:     n,
 	}
 }
 
-func NewPrivateKey() *ecdsa.PrivateKey {
+func newPrivateKey() *ecdsa.PrivateKey {
 	curve := crypto.S256()
 	privateKey, err := ecdsa.GenerateKey(curve, rand.Reader)
 	if err != nil {
@@ -40,7 +39,7 @@ func NewPrivateKey() *ecdsa.PrivateKey {
 }
 
 func newRecvAddrData() *recvAddrData {
-	privateKey := NewPrivateKey()
+	privateKey := newPrivateKey()
 	publicKey := privateKey.Public().(*ecdsa.PublicKey)
 	return &recvAddrData{
 		addrData: addrData{
@@ -50,22 +49,11 @@ func newRecvAddrData() *recvAddrData {
 	}
 }
 
-func (rt RecvAddrTable) FillRecvAddrTable(psk []byte, least int) {
+func (rt recvAddrTable) fillRecvAddrTable(psk []byte, least int) {
 	for i := 0; i < least; i++ {
 		recv := newRecvAddrData()
 		msg := calcMsg(recv, psk, rt.n)
 		rt.table[msg] = append(rt.table[msg], *recv)
-	}
-}
-
-func (rt RecvAddrTable) ShowRecvAddrTable() {
-	for i := range rt.table {
-		fmt.Println("============table[", i, "]==============")
-		for j := range rt.table[i] {
-			fmt.Printf("publicKey :0x%x\n", rt.table[i][j].publicKey)
-			fmt.Println("Addr      :", rt.table[i][j].address)
-			fmt.Println("---")
-		}
 	}
 }
 
