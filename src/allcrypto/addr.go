@@ -2,9 +2,10 @@ package allcrypto
 
 import (
 	"crypto/ecdsa"
+	"github.com/ethereum/go-ethereum/common"
 )
 
-type addrData struct {
-	publicKey ecdsa.PublicKey
-	address   string
+type AddrData struct {
+	PublicKey *ecdsa.PublicKey
+	Address   common.Address
 }

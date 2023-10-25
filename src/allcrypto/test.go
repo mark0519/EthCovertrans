@@ -9,8 +9,8 @@ func (rt recvAddrTable) showRecvAddrTable() {
 	for i := range rt.table {
 		fmt.Println("============table[", i, "]==============")
 		for j := range rt.table[i] {
-			fmt.Printf("publicKey :0x%x\n", rt.table[i][j].publicKey)
-			fmt.Println("Addr      :", rt.table[i][j].address)
+			fmt.Printf("publicKey :0x%x\n", rt.table[i][j].PublicKey)
+			fmt.Println("Addr      :", rt.table[i][j].Address)
 			fmt.Println("---")
 		}
 	}
@@ -21,7 +21,7 @@ func TestAddr(psk []byte) {
 	rt.fillRecvAddrTable(psk, 20)
 	rt.showRecvAddrTable()
 
-	sk1 := newPrivateKey()
+	sk1 := NewPrivateKey()
 	sk2 := derivationPrivateKey(sk1, psk)
 	pk1 := sk1.Public().(*ecdsa.PublicKey)
 
@@ -34,8 +34,8 @@ func TestAddr(psk []byte) {
 	sl := initSendAddrList(20, psk)
 	fmt.Println("============SendAddrList==============")
 	for i := range *sl {
-		fmt.Println("publicKey :", (*sl)[i].publicKey)
-		fmt.Println("addr      :", (*sl)[i].address)
+		fmt.Println("publicKey :", (*sl)[i].PublicKey)
+		fmt.Println("addr      :", (*sl)[i].Address)
 		fmt.Println("privateKey:", (*sl)[i].privateKey)
 	}
 }

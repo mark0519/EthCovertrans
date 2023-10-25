@@ -1,20 +1,20 @@
 package main
 
 import (
-	"EthCovertrans/src/allcrypto"
-	"crypto/rand"
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
+	"EthCovertrans/src/ethio"
 )
 
 func main() {
-	pskInt, _ := rand.Int(rand.Reader, secp256k1.S256().Params().N)
-	psk := pskInt.Bytes()
-	allcrypto.TestAddr(psk)
+	//pskInt, _ := rand.Int(rand.Reader, secp256k1.S256().Params().N)
+	//psk := pskInt.Bytes()
+	//allcrypto.TestAddr(psk)
+	ethio.TestETHIO()
+
 }
 
 //func initEthClient() *ethclient.Client {
-//	client, err := ethclient.Dial("https://sut0ne.tk/v1/sepolia")
-//	//client, err := ethclient.Dial("https://cloudflare-eth.com")
+//	//client, err := ethclient.Dial("https://sut0ne.tk/v1/sepolia")
+//	client, err := ethclient.Dial(ethio.EthGateway)
 //	if err != nil {
 //		log.Fatal(err)
 //	}
@@ -22,7 +22,7 @@ func main() {
 //}
 //
 //func testGetBalance(c *ethclient.Client) {
-//	addr := "0xa4528e245F87CBA1D650403d196eF505EE4D0a2B"
+//	addr := "0x0477a578618bB6E33AB017b441275d86C3E9a165"
 //	account := common.HexToAddress(addr)
 //	balance, err := c.BalanceAt(context.Background(), account, nil)
 //	if err != nil {
