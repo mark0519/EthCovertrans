@@ -7,12 +7,24 @@ import (
 	"math/big"
 )
 
-type sendAddrData struct {
-	addrData
-	privateKey ecdsa.PrivateKey
+type SendAddrData struct {
+	*AddrData
+	privateKey *ecdsa.PrivateKey
 }
 
-type sendAddrList []sendAddrData
+type sendAddrList []SendAddrData
+
+func InitSendAddrData(sk *ecdsa.PrivateKey) *SendAddrData {
+	ad := PrivateKeyToAddrData(sk)
+	return &SendAddrData{
+		AddrData:   ad,
+		privateKey: sk,
+	}
+}
+
+func (sad *SendAddrData) GetSendAddrDataPrivateKey() *ecdsa.PrivateKey {
+	return sad.privateKey
+}
 
 func derivationPrivateKey(oldKey *ecdsa.PrivateKey, psk []byte) *ecdsa.PrivateKey {
 	var pskInt big.Int
@@ -33,26 +45,26 @@ func derivationPrivateKey(oldKey *ecdsa.PrivateKey, psk []byte) *ecdsa.PrivateKe
 	return &newKey
 }
 
-func privateKeyToAddrData(sk *ecdsa.PrivateKey) *addrData {
+func PrivateKeyToAddrData(sk *ecdsa.PrivateKey) *AddrData {
 	pk := sk.Public().(*ecdsa.PublicKey)
-	return &addrData{
-		publicKey: *pk,
-		address:   crypto.PubkeyToAddress(*pk).Hex(),
+	return &AddrData{
+		PublicKey: pk,
+		Address:   crypto.PubkeyToAddress(*pk),
 	}
 }
 
 func initSendAddrList(n int, psk []byte) *sendAddrList {
-	sl := make([]sendAddrData, n)
-	sk := newPrivateKey()
-	sl[0] = sendAddrData{
-		addrData:   *privateKeyToAddrData(sk),
-		privateKey: *sk,
+	sl := make([]SendAddrData, n)
+	sk := NewPrivateKey()
+	sl[0] = SendAddrData{
+		AddrData:   PrivateKeyToAddrData(sk),
+		privateKey: sk,
 	}
 	for i := 1; i < n; i++ {
 		sk = derivationPrivateKey(sk, psk)
-		sl[i] = sendAddrData{
-			addrData:   *privateKeyToAddrData(sk),
-			privateKey: *sk,
+		sl[i] = SendAddrData{
+			AddrData:   PrivateKeyToAddrData(sk),
+			privateKey: sk,
 		}
 	}
 	return (*sendAddrList)(&sl)

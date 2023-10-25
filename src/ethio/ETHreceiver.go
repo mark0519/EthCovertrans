@@ -9,17 +9,7 @@ import (
 )
 
 func GetReceiverBySenderAddr(address common.Address) {
-	// client初始化
-	//client, err := ethclient.Dial("https://sut0ne.tk/v1/sepolia")
-	//client, err := ethclient.Dial("https://eth-sepolia.g.alchemy.com/v2/KvQyzbw_h3XnPpqfWoZ9GcvPAB0iPoDk")
-	////client, err := ethclient.Dial("https://cloudflare-eth.com")
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	client, err := rpc.Dial("https://eth-sepolia.g.alchemy.com/v2/KvQyzbw_h3XnPpqfWoZ9GcvPAB0iPoDk")
-	if err != nil {
-		log.Fatal(err)
-	}
+	client := initRPCClient()
 	defer client.Close()
 
 	// 查询交易
@@ -35,7 +25,7 @@ func GetReceiverBySenderAddr(address common.Address) {
 		Result: new([]types.Log),
 	}
 
-	err = client.BatchCall([]rpc.BatchElem{query})
+	err := client.BatchCall([]rpc.BatchElem{query})
 	if err != nil {
 		log.Fatal(err)
 	}
