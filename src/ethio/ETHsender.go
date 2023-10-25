@@ -19,10 +19,14 @@ type ETHSender struct {
 
 var Client *ethclient.Client
 
+func init() {
+	Client = initETHClient()
+}
+
 func (esdr *ETHSender) newETHSender(send *allcrypto.SendAddrData, recv *allcrypto.RecvAddrData) {
 	// 初始化ETHSender
 
-	Client = initETHClient()
+	//Client = initETHClient()
 	// sendAc初始化
 	esdr.sendAc = send
 
@@ -50,8 +54,9 @@ func (esdr *ETHSender) initSenderBalance() {
 		log.Printf("[Sender] Sender Balance == 0 wei")
 		log.Printf("[Sender] Request Faucets ...")
 
-		// 请求faucet，获得400000000000000单位gas，返回交易哈希
-		txHash := esdr.supplyFromFaucet(big.NewInt(40000000000))
+		// 请求faucet，获得400000000000000单位wei，返回交易哈希
+		gas := big.NewInt(10000000000000000)
+		txHash := esdr.supplyFromFaucet(gas)
 		log.Printf("[Sender] Request Faucets TxHash: %s\n", txHash)
 		waitForTx(txHash)
 	} else {
@@ -81,6 +86,7 @@ func waitForTx(txHash string) {
 			break
 		}
 	}
+	//fmt.Println("success")
 }
 
 func getStatusByTxhash(txHash string) bool {
@@ -105,7 +111,7 @@ func createTx(fromAC *allcrypto.SendAddrData, toAC *allcrypto.AddrData, value *b
 
 	// 获取gasPrice
 	gasPrice, err := Client.SuggestGasPrice(context.Background())
-	//gasPrice = gasPrice.Mul(gasPrice, big.NewInt(3*75000))
+	//gasPrice = gasPrice.Mul(gasPrice, big.NewInt(3))
 	if err != nil {
 		log.Fatal("[Sender]", err)
 	}
