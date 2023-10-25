@@ -6,7 +6,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
 	"math/big"
 )
@@ -15,12 +14,6 @@ type ETHSender struct {
 	sendAc   *allcrypto.SendAddrData
 	recvAc   *allcrypto.RecvAddrData
 	faucetAc *allcrypto.SendAddrData
-}
-
-var Client *ethclient.Client
-
-func init() {
-	Client = initETHClient()
 }
 
 func (esdr *ETHSender) newETHSender(send *allcrypto.SendAddrData, recv *allcrypto.RecvAddrData) {
