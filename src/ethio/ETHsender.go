@@ -143,3 +143,21 @@ func createTx(fromAC *allcrypto.SendAddrData, toAC *allcrypto.AddrData, value *b
 	// 返回交易hash
 	return signedTx.Hash().Hex()
 }
+
+func ETCSenderFactory(msgstr string, psk []byte) *[]ETHSender {
+	// 创建ETHSender实例
+	//msgIntSlice := sliceMsg(msgstr)
+	//sendList := allcrypto.InitSendAddrList(len(msgIntSlice), psk)
+	//for i, msg := range msgIntSlice {
+	//	recv := allcrypto.InitRecvAddrData(psk, MsgSliceLen)
+	//	send := sendList[i]
+	//}
+	//sender := new(ETHSender)
+	//sender.newETHSender(send, recv)
+	//return sender
+}
+
+func sliceMsg(msg string) []int {
+	// 处理发送的信息
+	return []int{1, 2, 3, 4, 5, 6, 7, 8}
+}

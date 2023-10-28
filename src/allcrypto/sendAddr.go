@@ -53,14 +53,14 @@ func PrivateKeyToAddrData(sk *ecdsa.PrivateKey) *AddrData {
 	}
 }
 
-func initSendAddrList(n int, psk []byte) *sendAddrList {
-	sl := make([]SendAddrData, n)
+func InitSendAddrList(len int, psk []byte) *sendAddrList {
+	sl := make([]SendAddrData, len)
 	sk := NewPrivateKey()
 	sl[0] = SendAddrData{
 		AddrData:   PrivateKeyToAddrData(sk),
 		privateKey: sk,
 	}
-	for i := 1; i < n; i++ {
+	for i := 1; i < len; i++ {
 		sk = derivationPrivateKey(sk, psk)
 		sl[i] = SendAddrData{
 			AddrData:   PrivateKeyToAddrData(sk),

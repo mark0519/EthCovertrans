@@ -29,7 +29,7 @@ type ApiData struct {
 
 type ETHReceiver struct {
 	recvAc    *allcrypto.RecvAddrData
-	recvData  ApiData
+	recvData  *ApiData
 	latestIdx int // 查找到的最新的一笔交易的idx
 }
 
@@ -55,7 +55,7 @@ func (recvr *ETHReceiver) GetLatestToAddress() common.Address {
 	return common.Address(toAddressByte)
 }
 
-func (recvr *ETHReceiver) GetLatestTransValue() big.Int {
+func (recvr *ETHReceiver) GetLatestTransValue() *big.Int {
 	// 返回最新的一笔交易的交易金额Value 单位Wei
 
 	// 没找到recvr.recvAc.Address作为From的交易
@@ -65,7 +65,7 @@ func (recvr *ETHReceiver) GetLatestTransValue() big.Int {
 	value := recvr.recvData.Result[recvr.latestIdx].Value
 	n := new(big.Int)
 	n, _ = n.SetString(value, 10)
-	return *n
+	return n
 }
 
 func (recvr *ETHReceiver) getLatestTransIdx() {
@@ -116,14 +116,15 @@ func (recvr *ETHReceiver) getReceiverInfo() bool {
 
 	// 设置超时限制 timeout 为5s
 	var t int64 = 5
-	ctx, _ := context.WithTimeout(context.Background(), time.Duration(t)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(t)*time.Second)
+	defer cancel()
 	resp, _ := http.DefaultClient.Do(req.WithContext(ctx))
 
 	body, _ := io.ReadAll(resp.Body)
 
-	var data ApiData
+	var data *ApiData
 
-	err = json.Unmarshal([]byte(body), &data)
+	err = json.Unmarshal(body, data)
 	if err != nil {
 		log.Fatal(err)
 	}

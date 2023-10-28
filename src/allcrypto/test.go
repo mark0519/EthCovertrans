@@ -5,21 +5,12 @@ import (
 	"fmt"
 )
 
-func (rt recvAddrTable) showRecvAddrTable() {
-	for i := range rt.table {
-		fmt.Println("============table[", i, "]==============")
-		for j := range rt.table[i] {
-			fmt.Printf("publicKey :0x%x\n", rt.table[i][j].PublicKey)
-			fmt.Println("Addr      :", rt.table[i][j].Address)
-			fmt.Println("---")
-		}
-	}
-}
-
 func TestAddr(psk []byte) {
-	rt := initRecvAddrTable(2)
-	rt.fillRecvAddrTable(psk, 20)
-	rt.showRecvAddrTable()
+	rt := InitRecvAddrData(psk, 4)
+	fmt.Println("============RecvAddrData==============")
+	fmt.Println("publicKey :", rt.PublicKey)
+	fmt.Println("addr      :", rt.Address)
+	fmt.Println("msg       :", rt.Msg)
 
 	sk1 := NewPrivateKey()
 	sk2 := derivationPrivateKey(sk1, psk)
@@ -31,7 +22,7 @@ func TestAddr(psk []byte) {
 	fmt.Printf("pk2_fromsk2:%v\n", pk2_fromsk2)
 	fmt.Printf("pk2_frompk1:%v\n", pk2_frompk1)
 
-	sl := initSendAddrList(20, psk)
+	sl := InitSendAddrList(20, psk)
 	fmt.Println("============SendAddrList==============")
 	for i := range *sl {
 		fmt.Println("publicKey :", (*sl)[i].PublicKey)
