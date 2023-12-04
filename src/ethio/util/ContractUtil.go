@@ -1,9 +1,5 @@
 package util
 
-import (
-	. "EthCovertrans/src/cryptoUtil"
-)
-
 func UpdateContract(sender SendAddrData) {
 	// TODO: 更新合约公钥，更新本地公钥
 }

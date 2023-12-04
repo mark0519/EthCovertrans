@@ -1,7 +1,6 @@
 package util
 
 import (
-	. "EthCovertrans/src/cryptoUtil"
 	"crypto/ecdsa"
 )
 
