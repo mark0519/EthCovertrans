@@ -1,7 +1,6 @@
 package ethio
 
 import (
-	. "EthCovertrans/src/cryptoUtil"
 	"EthCovertrans/src/ethio/util"
 	"context"
 	"crypto/ecdsa"
@@ -13,12 +12,12 @@ import (
 )
 
 type MsgSender struct {
-	sendAc *SendAddrData
-	recvAc *RecvAddrData
+	sendAc *util.SendAddrData
+	recvAc *util.RecvAddrData
 	value  *big.Int
 }
 
-func (msdr *MsgSender) newETHSender(send *SendAddrData, recv *RecvAddrData) {
+func (msdr *MsgSender) newETHSender(send *util.SendAddrData, recv *util.RecvAddrData) {
 	// 发送方地址初始化
 	msdr.sendAc = send
 	// 发送方余额初始化
@@ -88,7 +87,7 @@ func getStatusByTxhash(txHash string, status chan bool) {
 	status <- true
 }
 
-func createTx(fromAC *SendAddrData, toAC *AddrData, value *big.Int) string {
+func createTx(fromAC *util.SendAddrData, toAC *util.AddrData, value *big.Int) string {
 	// 创建交易,从fromAC发送到toAC,发送金额为value
 
 	// 获取nonce
@@ -141,22 +140,22 @@ func createTx(fromAC *SendAddrData, toAC *AddrData, value *big.Int) string {
 	return signedTx.Hash().Hex()
 }
 
-func newSenderList(times int, psk *ecdsa.PrivateKey, originSender *SendAddrData) *[]SendAddrData {
+func newSenderList(times int, psk *ecdsa.PrivateKey, originSender *util.SendAddrData) *[]util.SendAddrData {
 	// 创建发送者列表
-	senderList := make([]SendAddrData, times+1)
-	senderList[0] = *(DerivationSendAddrData(originSender, psk))
+	senderList := make([]util.SendAddrData, times+1)
+	senderList[0] = *(util.DerivationSendAddrData(originSender, psk))
 
 	// 多计算一个以更新合约
 	for i := 1; i < times+1; i++ {
-		senderList[i] = *(DerivationSendAddrData(originSender, psk))
+		senderList[i] = *(util.DerivationSendAddrData(originSender, psk))
 	}
 	return &senderList
 }
 
-func newRecverList(times int, psk *ecdsa.PrivateKey) *[]RecvAddrData {
-	recverList := make([]RecvAddrData, times)
+func newRecverList(times int, psk *ecdsa.PrivateKey) *[]util.RecvAddrData {
+	recverList := make([]util.RecvAddrData, times)
 	for i := 0; i < times; i++ {
-		recverList[i] = *InitRecvAddrData(psk, MsgSliceLen)
+		recverList[i] = *util.InitRecvAddrData(psk, MsgSliceLen)
 	}
 	return &recverList
 }
@@ -170,7 +169,7 @@ func doSend(msgSenders *[]MsgSender) {
 	}
 }
 
-func MsgSenderFactory(msgstr string, psk *ecdsa.PrivateKey, orignSender *SendAddrData) {
+func MsgSenderFactory(msgstr string, psk *ecdsa.PrivateKey, orignSender *util.SendAddrData) {
 	// 创建ETHSender实例
 
 	msgIntSlice := sliceMsg(msgstr)

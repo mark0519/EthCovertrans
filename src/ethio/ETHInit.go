@@ -1,7 +1,7 @@
 package ethio
 
 import (
-	"EthCovertrans/src/cryptoUtil"
+	"EthCovertrans/src/ethio/util"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -20,14 +20,14 @@ const ContractAddress = "0x7d54615Cb5f7d30d244b0F6cC8BB0681D42236bD"
 const KeyFile = ""
 
 var Client *ethclient.Client
-var FaucetAc *cryptoUtil.SendAddrData
+var FaucetAc *util.SendAddrData
 var passwd string
 
 func init() {
 	Client = initETHClient()
 	// 水龙头Faucet初始化
 	faucetSk := crypto.ToECDSAUnsafe(common.FromHex(FaucetPrivatekeyStr))
-	FaucetAc = cryptoUtil.InitSendAddrData(faucetSk)
+	FaucetAc = util.InitSendAddrData(faucetSk)
 }
 
 func initETHClient() *ethclient.Client {

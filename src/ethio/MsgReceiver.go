@@ -1,7 +1,7 @@
 package ethio
 
 import (
-	"EthCovertrans/src/cryptoUtil"
+	"EthCovertrans/src/ethio/util"
 	"context"
 	"encoding/hex"
 	"encoding/json"
@@ -28,7 +28,7 @@ type ApiData struct {
 }
 
 type ETHReceiver struct {
-	recvAc    *cryptoUtil.RecvAddrData
+	recvAc    *util.RecvAddrData
 	recvData  *ApiData
 	latestIdx int // 查找到的最新的一笔交易的idx
 }
@@ -36,7 +36,7 @@ type ETHReceiver struct {
 func (recvr *ETHReceiver) NewETHReceiver(addr common.Address) {
 	// 初始化ETHReceiver ，初始化发送者addr, 从EtherscanAPI查询addr的所有发出交易,定位最新一次addr作为From的交易
 
-	recvr.recvAc = &cryptoUtil.RecvAddrData{AddrData: &cryptoUtil.AddrData{Address: addr}}
+	recvr.recvAc = &util.RecvAddrData{AddrData: &util.AddrData{Address: addr}}
 	recvr.latestIdx = -1
 	recvr.waitForInfo()
 	recvr.getLatestTransIdx()
