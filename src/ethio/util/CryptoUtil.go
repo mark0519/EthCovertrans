@@ -17,7 +17,7 @@ type AddrData struct {
 
 type RecvAddrData struct {
 	*AddrData
-	Msg int
+	Msg int32
 }
 
 type SendAddrData struct {
@@ -69,7 +69,7 @@ func PrivateKeyToAddrData(sk *ecdsa.PrivateKey) *AddrData {
 	}
 }
 
-func derivationPublicKey(oldKey *ecdsa.PublicKey, psk *ecdsa.PrivateKey) *ecdsa.PublicKey {
+func DerivationPublicKey(oldKey *ecdsa.PublicKey, psk *ecdsa.PrivateKey) *ecdsa.PublicKey {
 	newX, newY := secp256k1.S256().ScalarMult(oldKey.X, oldKey.Y, psk.D.Bytes())
 	newKey := ecdsa.PublicKey{
 		Curve: oldKey.Curve,
@@ -101,21 +101,21 @@ func newRecvAddrData() *RecvAddrData {
 
 func InitRecvAddrData(psk *ecdsa.PrivateKey, n int) *RecvAddrData {
 	recv := newRecvAddrData()
-	recv.calcMsg(psk, n)
+	recv.Msg = CalcMsg(recv.Address, psk, n)
 	return recv
 }
 
-func (recv *RecvAddrData) calcMsg(psk *ecdsa.PrivateKey, n int) {
+func CalcMsg(addr common.Address, psk *ecdsa.PrivateKey, n int) (msg int32) {
 	// 通过哈希计算 地址集合addrList
 	// n为每次发送消息的位数
-	data := []byte(recv.Address.Hex() + string(psk.D.Bytes()))
+	data := []byte(addr.Hex() + string(psk.D.Bytes()))
 	hasher := sha256.New()
 	hasher.Write(data)
 	hashBytes := hasher.Sum(nil)
 	// 获取最后n位
 	bytesNum := n/8 + 1
 	lastByte := hashBytes[len(hashBytes)-bytesNum]
-	mask := uint64(1<<n - 1)
-	result := uint64(lastByte) & mask
-	recv.Msg = int(result)
+	mask := int32(1<<n - 1)
+	msg = int32(lastByte) & mask
+	return
 }

@@ -1,6 +1,8 @@
 package util
 
-func UpdateContract(sender SendAddrData) {
+import "crypto/ecdsa"
+
+func UpdateContract(key *ecdsa.PublicKey) {
 	// TODO: 更新合约公钥，更新本地公钥
 }
 

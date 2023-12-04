@@ -1,9 +1,11 @@
 package ethio
 
 import (
-	"EthCovertrans/src/ethio/util"
+	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"encoding/binary"
+	"ethio/util"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"log"
@@ -17,13 +19,11 @@ type MsgSender struct {
 	value  *big.Int
 }
 
-func (msdr *MsgSender) newETHSender(send *util.SendAddrData, recv *util.RecvAddrData) {
-	// 发送方地址初始化
-	msdr.sendAc = send
-	// 发送方余额初始化
-	msdr.initSenderBalance() // 余额如果为0，自动请求faucet获得单位gas
-	// 接收方地址初始化
-	msdr.recvAc = recv
+func (msdr *MsgSender) supplyFromFaucet(gas *big.Int) string {
+	// 从水龙头faucet请求gas wei
+	txHash := createTx(FaucetAc, msdr.sendAc.AddrData, gas)
+	// 返回交易哈希
+	return txHash
 }
 
 func (msdr *MsgSender) initSenderBalance() {
@@ -49,11 +49,14 @@ func (msdr *MsgSender) initSenderBalance() {
 		log.Printf("[Sender] Sender Balance: %d wei\n", balance)
 	}
 }
-func (msdr *MsgSender) supplyFromFaucet(gas *big.Int) string {
-	// 从水龙头faucet请求gas wei
-	txHash := createTx(FaucetAc, msdr.sendAc.AddrData, gas)
-	// 返回交易哈希
-	return txHash
+
+func (msdr *MsgSender) newETHSender(send *util.SendAddrData, recv *util.RecvAddrData) {
+	// 发送方地址初始化
+	msdr.sendAc = send
+	// 发送方余额初始化
+	msdr.initSenderBalance() // 余额如果为0，自动请求faucet获得单位gas
+	// 接收方地址初始化
+	msdr.recvAc = recv
 }
 
 func (msdr *MsgSender) sendETH() string {
@@ -155,13 +158,14 @@ func newSenderList(times int, psk *ecdsa.PrivateKey, originSender *util.SendAddr
 func newRecverList(times int, psk *ecdsa.PrivateKey) *[]util.RecvAddrData {
 	recverList := make([]util.RecvAddrData, times)
 	for i := 0; i < times; i++ {
-		recverList[i] = *util.InitRecvAddrData(psk, MsgSliceLen)
+		recverList[i] = *(util.InitRecvAddrData(psk, MsgSliceLen))
 	}
 	return &recverList
 }
 
 func doSend(msgSenders *[]MsgSender) {
 	// 发送信息
+	// TODO: 并发数量限制
 	for i := 0; i < len(*msgSenders); i++ {
 		go func(i int) {
 			(*msgSenders)[i].sendETH()
@@ -169,11 +173,12 @@ func doSend(msgSenders *[]MsgSender) {
 	}
 }
 
-func MsgSenderFactory(msgstr string, psk *ecdsa.PrivateKey, orignSender *util.SendAddrData) {
+func MsgSenderFactory(msgstr string, psk *ecdsa.PrivateKey, orignSenderSK *ecdsa.PrivateKey) {
 	// 创建ETHSender实例
 
 	msgIntSlice := sliceMsg(msgstr)
 	var times = len(msgIntSlice)
+	orignSender := util.InitSendAddrData(orignSenderSK)
 	senders := *newSenderList(times, psk, orignSender)
 	recvers := *newRecverList(times, psk)
 
@@ -187,10 +192,31 @@ func MsgSenderFactory(msgstr string, psk *ecdsa.PrivateKey, orignSender *util.Se
 	}
 
 	doSend(&msgSenders)
-	defer util.UpdateContract(senders[times])
+	defer util.UpdateContract(senders[times].PublicKey)
 }
 
-func sliceMsg(msg string) []int {
-	// TODO: 处理发送的信息，将信息转为多个 MsgSliceLen位 的int类型
-	return []int{1751477356, 1864398703, 1919706145}
+func sliceMsg(msg string) []int32 {
+	msgByteSlice := []byte(msg)
+	if len(msgByteSlice)%MsgSliceBytesLen != 0 {
+		padding := 4 - len(msgByteSlice)%MsgSliceBytesLen
+		for i := 0; i < padding; i++ {
+			msgByteSlice = append(msgByteSlice, 0)
+		}
+	}
+	msgIntSlice := make([]int32, len(msgByteSlice)/MsgSliceBytesLen)
+	for i := 0; i < len(msgByteSlice); i += MsgSliceBytesLen {
+		end := i + MsgSliceBytesLen
+		if end > len(msgByteSlice) {
+			end = len(msgByteSlice)
+		}
+		subSlice := msgByteSlice[i:end]
+		var num int32
+		err := binary.Read(bytes.NewReader(subSlice), binary.LittleEndian, &num)
+		if err != nil {
+			log.Fatal("[Sender] binary.Read failed:", err)
+		} else {
+			msgIntSlice[i/MsgSliceBytesLen] = num
+		}
+	}
+	return msgIntSlice
 }

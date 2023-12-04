@@ -1,7 +1,7 @@
 package ethio
 
 import (
-	"EthCovertrans/src/ethio/util"
+	"ethio/util"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -16,6 +16,7 @@ const FaucetPrivatekeyStr = "983ec812c710bd1a3ef13bfd089cf8c7cf672f8bf17a7b9be51
 const EtherscanAPIKey = "WE5VDDZE6QVKYC194QM44QVUEWUPTCGH8I"
 const EtherscanAPIURL = "https://api-sepolia.etherscan.io/api"
 const MsgSliceLen = 32 // 每次发送的消息比特数
+const MsgSliceBytesLen = 4
 const ContractAddress = "0x7d54615Cb5f7d30d244b0F6cC8BB0681D42236bD"
 const KeyFile = ""
 

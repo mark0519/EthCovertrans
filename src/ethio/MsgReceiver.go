@@ -1,11 +1,14 @@
 package ethio
 
 import (
-	"EthCovertrans/src/ethio/util"
 	"context"
+	"crypto/ecdsa"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"ethio/util"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"io"
 	"log"
 	"math/big"
@@ -27,22 +30,23 @@ type ApiData struct {
 	}
 }
 
-type ETHReceiver struct {
-	recvAc    *util.RecvAddrData
+type MsgReceiver struct {
+	recvAc    *util.AddrData
 	recvData  *ApiData
 	latestIdx int // 查找到的最新的一笔交易的idx
 }
 
-func (recvr *ETHReceiver) NewETHReceiver(addr common.Address) {
+func NewMsgReceiver(addr common.Address) (recvr *MsgReceiver) {
 	// 初始化ETHReceiver ，初始化发送者addr, 从EtherscanAPI查询addr的所有发出交易,定位最新一次addr作为From的交易
 
-	recvr.recvAc = &util.RecvAddrData{AddrData: &util.AddrData{Address: addr}}
+	recvr.recvAc = &util.AddrData{Address: addr}
 	recvr.latestIdx = -1
 	recvr.waitForInfo()
 	recvr.getLatestTransIdx()
+	return
 }
 
-func (recvr *ETHReceiver) GetLatestToAddress() common.Address {
+func (recvr *MsgReceiver) GetLatestToAddress() common.Address {
 	// 返回最新的一笔交易的接收者to地址
 
 	// 没找到recvr.recvAc.Address作为From的交易
@@ -55,7 +59,7 @@ func (recvr *ETHReceiver) GetLatestToAddress() common.Address {
 	return common.Address(toAddressByte)
 }
 
-func (recvr *ETHReceiver) GetLatestTransValue() *big.Int {
+func (recvr *MsgReceiver) GetLatestTransValue() *big.Int {
 	// 返回最新的一笔交易的交易金额Value 单位Wei
 
 	// 没找到recvr.recvAc.Address作为From的交易
@@ -68,7 +72,7 @@ func (recvr *ETHReceiver) GetLatestTransValue() *big.Int {
 	return n
 }
 
-func (recvr *ETHReceiver) getLatestTransIdx() {
+func (recvr *MsgReceiver) getLatestTransIdx() {
 	// 返回最新的recvr.recvAc.Address作为From的交易的idx
 
 	for idx := 0; idx < len(recvr.recvData.Result); idx++ {
@@ -82,7 +86,7 @@ func (recvr *ETHReceiver) getLatestTransIdx() {
 	}
 }
 
-func (recvr *ETHReceiver) waitForInfo() {
+func (recvr *MsgReceiver) waitForInfo() {
 	// API限制5s一次，等待5s
 	for {
 		if recvr.getReceiverInfo() {
@@ -93,7 +97,7 @@ func (recvr *ETHReceiver) waitForInfo() {
 	}
 }
 
-func (recvr *ETHReceiver) getReceiverInfo() bool {
+func (recvr *MsgReceiver) getReceiverInfo() bool {
 	// 向EtherscanAPI查询addr的所有发出交易
 
 	// 初始化请求
@@ -131,5 +135,25 @@ func (recvr *ETHReceiver) getReceiverInfo() bool {
 	//fmt.Println(data)
 	recvr.recvData = data
 	return data.Message == "OK"
+}
 
+func doRecv(psk *ecdsa.PrivateKey, publicKey *ecdsa.PublicKey) []byte {
+	addr := crypto.PubkeyToAddress(*publicKey)
+	recver := NewMsgReceiver(addr)
+	value := recver.GetLatestTransValue()
+	toAddr := recver.GetLatestToAddress()
+	orignMsg := util.CalcMsg(toAddr, psk, MsgSliceLen)
+	msgInt := orignMsg ^ int32(value.Int64())
+	msg := make([]byte, MsgSliceLen)
+	binary.LittleEndian.PutUint32(msg, uint32(msgInt))
+	return msg
+}
+
+func MsgRecverFactory(psk *ecdsa.PrivateKey, orignPublicKey *ecdsa.PublicKey, lastPublicKey *ecdsa.PublicKey) []byte {
+	var msg []byte
+	for derivationKey := util.DerivationPublicKey(orignPublicKey, psk); derivationKey != lastPublicKey; derivationKey = util.DerivationPublicKey(derivationKey, psk) {
+		msg = append(msg, doRecv(psk, derivationKey)...)
+		log.Println("[Receiver] Recv Msg:", string(msg))
+	}
+	return msg
 }

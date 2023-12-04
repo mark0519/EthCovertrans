@@ -33,7 +33,7 @@ contract EllipticCurveKeyStorage {
             groupPKToSenderPK[groupPK].push(newKey);
         } else {
             int indexToRemove = findECKeyIndex(groupPK, oldKey);
-            require(indexToRemove != -1, "Old ECKey not found");
+            require(indexToRemove != - 1, "Old ECKey not found");
             groupPKToSenderPK[groupPK][uint256(indexToRemove)] = newKey;
         }
     }
@@ -45,7 +45,7 @@ contract EllipticCurveKeyStorage {
                 return int(i);
             }
         }
-        return -1;  // 表示未找到
+        return - 1;  // 表示未找到
     }
 
     function getSenderPK(address groupPK) external view returns (ECKey[] memory) {
