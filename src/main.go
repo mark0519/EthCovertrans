@@ -1,16 +1,12 @@
 package main
 
 import (
-	"EthCovertrans/src/allcrypto"
-	"crypto/rand"
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
+	"EthCovertrans/src/cryptoUtil"
 )
 
 func main() {
-	pskInt, _ := rand.Int(rand.Reader, secp256k1.S256().Params().N)
-	psk := pskInt.Bytes()
-	allcrypto.TestAddr(psk)
-	//ethio.TestETHIO()
+	psk := cryptoUtil.NewPrivateKey()
+	cryptoUtil.TestAddr(psk)
 
 }
 

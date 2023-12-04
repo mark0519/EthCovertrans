@@ -1,4 +1,4 @@
-package allcrypto
+package cryptoUtil
 
 import (
 	"crypto/ecdsa"
@@ -12,8 +12,6 @@ type SendAddrData struct {
 	privateKey *ecdsa.PrivateKey
 }
 
-type sendAddrList []SendAddrData
-
 func InitSendAddrData(sk *ecdsa.PrivateKey) *SendAddrData {
 	ad := PrivateKeyToAddrData(sk)
 	return &SendAddrData{
@@ -26,21 +24,26 @@ func (sad *SendAddrData) GetSendAddrDataPrivateKey() *ecdsa.PrivateKey {
 	return sad.privateKey
 }
 
-func derivationPrivateKey(oldKey *ecdsa.PrivateKey, psk []byte) *ecdsa.PrivateKey {
-	var pskInt big.Int
-	pskInt.SetBytes(psk)
+func DerivationSendAddrData(oldKey *SendAddrData, psk *ecdsa.PrivateKey) *SendAddrData {
 
-	newKeyInt := new(big.Int).Mul(oldKey.D, &pskInt)
+	newKeyInt := new(big.Int).Mul(oldKey.privateKey.D, psk.D)
 	newKeyInt = newKeyInt.Mod(newKeyInt, secp256k1.S256().Params().N)
 	newX, newY := secp256k1.S256().ScalarBaseMult(newKeyInt.Bytes())
 	curve := secp256k1.S256()
-	newKey := ecdsa.PrivateKey{
-		PublicKey: ecdsa.PublicKey{
-			Curve: curve,
-			X:     newX,
-			Y:     newY,
+	newPublicKey := ecdsa.PublicKey{
+		Curve: curve,
+		X:     newX,
+		Y:     newY,
+	}
+	newKey := SendAddrData{
+		AddrData: &AddrData{
+			PublicKey: &newPublicKey,
+			Address:   crypto.PubkeyToAddress(newPublicKey),
 		},
-		D: newKeyInt,
+		privateKey: &ecdsa.PrivateKey{
+			PublicKey: newPublicKey,
+			D:         newKeyInt,
+		},
 	}
 	return &newKey
 }
@@ -53,25 +56,8 @@ func PrivateKeyToAddrData(sk *ecdsa.PrivateKey) *AddrData {
 	}
 }
 
-func InitSendAddrList(len int, psk []byte) *sendAddrList {
-	sl := make([]SendAddrData, len)
-	sk := NewPrivateKey()
-	sl[0] = SendAddrData{
-		AddrData:   PrivateKeyToAddrData(sk),
-		privateKey: sk,
-	}
-	for i := 1; i < len; i++ {
-		sk = derivationPrivateKey(sk, psk)
-		sl[i] = SendAddrData{
-			AddrData:   PrivateKeyToAddrData(sk),
-			privateKey: sk,
-		}
-	}
-	return (*sendAddrList)(&sl)
-}
-
-func derivationPublicKey(oldKey *ecdsa.PublicKey, psk []byte) *ecdsa.PublicKey {
-	newX, newY := secp256k1.S256().ScalarMult(oldKey.X, oldKey.Y, psk)
+func derivationPublicKey(oldKey *ecdsa.PublicKey, psk *ecdsa.PrivateKey) *ecdsa.PublicKey {
+	newX, newY := secp256k1.S256().ScalarMult(oldKey.X, oldKey.Y, psk.D.Bytes())
 	newKey := ecdsa.PublicKey{
 		Curve: oldKey.Curve,
 		X:     newX,

@@ -1,4 +1,4 @@
-package allcrypto
+package cryptoUtil
 
 import (
 	"crypto/ecdsa"
@@ -32,15 +32,16 @@ func newRecvAddrData() *RecvAddrData {
 	}
 }
 
-func InitRecvAddrData(psk []byte, n int) *RecvAddrData {
+func InitRecvAddrData(psk *ecdsa.PrivateKey, n int) *RecvAddrData {
 	recv := newRecvAddrData()
 	recv.calcMsg(psk, n)
 	return recv
 }
 
-func (recv *RecvAddrData) calcMsg(psk []byte, n int) {
+func (recv *RecvAddrData) calcMsg(psk *ecdsa.PrivateKey, n int) {
 	// 通过哈希计算 地址集合addrList
-	data := []byte(recv.Address.Hex() + string(psk))
+	// n为每次发送消息的位数
+	data := []byte(recv.Address.Hex() + string(psk.D.Bytes()))
 	hasher := sha256.New()
 	hasher.Write(data)
 	hashBytes := hasher.Sum(nil)

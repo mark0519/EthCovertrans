@@ -10,14 +10,14 @@ func TestETHIO() {
 	//sender := new(ETHSender)
 
 	// Sender 账户私钥
-	//sendKey := allcrypto.NewPrivateKey()
+	//sendKey := cryptoUtil.NewPrivateKey()
 	//sendKey := crypto.ToECDSAUnsafe(common.FromHex("46927aa4aef15bcb8233c953a0a62e0a53334adc27f89767cc82b2e9841a723d"))
-	//sendData := allcrypto.InitSendAddrData(sendKey)
+	//sendData := cryptoUtil.InitSendAddrData(sendKey)
 	//recvAddr := "0477a578618bB6E33AB017b441275d86C3E9a165"
 	//addressBytes, _ := hex.DecodeString(recvAddr)
-	//recvData := new(allcrypto.RecvAddrData)
-	//recvData = &allcrypto.RecvAddrData{
-	//	AddrData: &allcrypto.AddrData{
+	//recvData := new(cryptoUtil.RecvAddrData)
+	//recvData = &cryptoUtil.RecvAddrData{
+	//	AddrData: &cryptoUtil.AddrData{
 	//		PublicKey: nil,
 	//		Address:   common.Address(addressBytes),
 	//	},
