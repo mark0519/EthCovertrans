@@ -1,7 +1,7 @@
 package ethio
 
 import (
-	"ethio/util"
+	"EthCovertrans/src/ethio/util"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"

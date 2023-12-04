@@ -1,11 +1,11 @@
 package ethio
 
 import (
+	"EthCovertrans/src/ethio/util"
 	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"encoding/binary"
-	"ethio/util"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"log"

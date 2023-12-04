@@ -1,8 +1,8 @@
 package ethio
 
 import (
+	"EthCovertrans/src/ethio/util"
 	"crypto/ecdsa"
-	"ethio/util"
 	"math/big"
 )
 

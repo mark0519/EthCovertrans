@@ -1,7 +1,7 @@
 package main
 
-import "ethio/util"
+import "EthCovertrans/src/ethio"
 
 func main() {
-	util.Test()
+	ethio.Test()
 }
