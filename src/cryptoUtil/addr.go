@@ -1,4 +1,4 @@
-package allcrypto
+package cryptoUtil
 
 import (
 	"crypto/ecdsa"
