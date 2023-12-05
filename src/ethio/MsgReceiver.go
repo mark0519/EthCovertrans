@@ -36,10 +36,13 @@ type MsgReceiver struct {
 	latestIdx int // 查找到的最新的一笔交易的idx
 }
 
-func NewMsgReceiver(addr common.Address) (recvr *MsgReceiver) {
+func NewMsgReceiver(publicKey *ecdsa.PublicKey) (recvr *MsgReceiver) {
 	// 初始化ETHReceiver ，初始化发送者addr, 从EtherscanAPI查询addr的所有发出交易,定位最新一次addr作为From的交易
-
-	recvr.recvAc = &util.AddrData{Address: addr}
+	recvr = new(MsgReceiver)
+	recvr.recvAc = &util.AddrData{
+		Address:   crypto.PubkeyToAddress(*publicKey),
+		PublicKey: publicKey,
+	}
 	recvr.latestIdx = -1
 	recvr.waitForInfo()
 	recvr.getLatestTransIdx()
@@ -119,15 +122,17 @@ func (recvr *MsgReceiver) getReceiverInfo() bool {
 	//fmt.Printf(req.URL.String())
 
 	// 设置超时限制 timeout 为5s
-	var t int64 = 5
+	var t int64 = 20
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(t)*time.Second)
 	defer cancel()
-	resp, _ := http.DefaultClient.Do(req.WithContext(ctx))
+	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	body, _ := io.ReadAll(resp.Body)
 
-	var data *ApiData
-
+	data := new(ApiData)
 	err = json.Unmarshal(body, data)
 	if err != nil {
 		log.Fatal(err)
@@ -138,8 +143,8 @@ func (recvr *MsgReceiver) getReceiverInfo() bool {
 }
 
 func doRecv(psk *ecdsa.PrivateKey, publicKey *ecdsa.PublicKey) []byte {
-	addr := crypto.PubkeyToAddress(*publicKey)
-	recver := NewMsgReceiver(addr)
+
+	recver := NewMsgReceiver(publicKey)
 	value := recver.GetLatestTransValue()
 	toAddr := recver.GetLatestToAddress()
 	orignMsg := util.CalcMsg(toAddr, psk, MsgSliceLen)

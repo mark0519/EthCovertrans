@@ -32,7 +32,7 @@ func (msdr *MsgSender) initSenderBalance() {
 
 	balance, err := Client.BalanceAt(context.Background(), msdr.sendAc.Address, nil)
 	if err != nil {
-		log.Fatal("[Sender]", err)
+		log.Fatal("[Sender] get balance:", err)
 	}
 	log.Printf("[Sender] Sender Account: %s\n", msdr.sendAc.Address)
 	if balance.Cmp(big.NewInt(0)) == 0 {
@@ -50,44 +50,42 @@ func (msdr *MsgSender) initSenderBalance() {
 	}
 }
 
-func (msdr *MsgSender) newETHSender(send *util.SendAddrData, recv *util.RecvAddrData) {
+func newMsgSender(send *util.SendAddrData, recv *util.RecvAddrData, value *big.Int) (msdr *MsgSender) {
+	msdr = new(MsgSender)
 	// 发送方地址初始化
 	msdr.sendAc = send
 	// 发送方余额初始化
 	msdr.initSenderBalance() // 余额如果为0，自动请求faucet获得单位gas
 	// 接收方地址初始化
 	msdr.recvAc = recv
+	msdr.value = value
+	return
 }
 
 func (msdr *MsgSender) sendETH() string {
 	// 创建交易,转账value wei
 	txHash := createTx(msdr.sendAc, msdr.recvAc.AddrData, msdr.value)
 	log.Printf("[Sender] SendETH TxHash: %s\n", txHash)
-
+	waitForTx(txHash)
 	// 返回交易哈希
 	return txHash
 }
 
-func waitForTx(txHash string) {
-	// 等待交易完成
-	status := make(chan bool)
-	go getStatusByTxhash(txHash, status)
-	<-status
-}
-
-func getStatusByTxhash(txHash string, status chan bool) {
+func waitForTx(txHash string) bool {
+	log.Print("[Sender] Waiting For Transaction ...")
 	for {
 		// 根据交易哈希查询交易状态
 		receipt, err := Client.TransactionReceipt(context.Background(), common.HexToHash(txHash))
 		if err != nil {
-			log.Fatal("[Sender]", err)
+			time.Sleep(3 * time.Second)
+			continue
 		}
 		if receipt.Status == types.ReceiptStatusSuccessful {
 			break
 		}
 		time.Sleep(3 * time.Second)
 	}
-	status <- true
+	return true
 }
 
 func createTx(fromAC *util.SendAddrData, toAC *util.AddrData, value *big.Int) string {
@@ -97,7 +95,7 @@ func createTx(fromAC *util.SendAddrData, toAC *util.AddrData, value *big.Int) st
 	fromAddress := fromAC.Address
 	nonce, err := Client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
-		log.Fatal("[Sender]", err)
+		log.Fatal("[Sender] get nonce:", err)
 	}
 	//log.Printf("[Sender] Sender Nonce: %d\n", nonce)
 
@@ -105,7 +103,7 @@ func createTx(fromAC *util.SendAddrData, toAC *util.AddrData, value *big.Int) st
 	gasPrice, err := Client.SuggestGasPrice(context.Background())
 	//gasPrice = gasPrice.Mul(gasPrice, big.NewInt(3))
 	if err != nil {
-		log.Fatal("[Sender]", err)
+		log.Fatal("[Sender] get gasPrice:", err)
 	}
 	//fmt.Println(gasPrice)
 	// 设置gas上限
@@ -184,11 +182,7 @@ func MsgSenderFactory(msgstr string, psk *ecdsa.PrivateKey, orignSenderSK *ecdsa
 
 	msgSenders := make([]MsgSender, times)
 	for i := 0; i < times; i++ {
-		msgSenders[i] = MsgSender{
-			sendAc: &(senders)[i],
-			recvAc: &(recvers)[i],
-			value:  big.NewInt(int64(recvers[i].Msg ^ msgIntSlice[i])),
-		}
+		msgSenders[i] = *newMsgSender(&(senders)[i], &(recvers)[i], big.NewInt(int64(recvers[i].Msg^msgIntSlice[i])))
 	}
 
 	doSend(&msgSenders)
