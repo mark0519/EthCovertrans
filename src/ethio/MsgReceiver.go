@@ -43,9 +43,13 @@ func NewMsgReceiver(publicKey *ecdsa.PublicKey) (recvr *MsgReceiver) {
 		Address:   crypto.PubkeyToAddress(*publicKey),
 		PublicKey: publicKey,
 	}
+
 	recvr.latestIdx = -1
-	recvr.waitForInfo()
-	recvr.getLatestTransIdx()
+	for recvr.latestIdx == -1 {
+		recvr.waitForInfo()
+		recvr.getLatestTransIdx()
+		time.Sleep(5 * time.Second)
+	}
 	return
 }
 
@@ -119,7 +123,8 @@ func (recvr *MsgReceiver) getReceiverInfo() bool {
 	params.Add("sort", "desc") // 正序aes 倒序desc
 	params.Add("apikey", EtherscanAPIKey)
 	req.URL.RawQuery = params.Encode()
-	//fmt.Printf(req.URL.String())
+
+	log.Println("[Receiver] Api url:", req.URL.String())
 
 	// 设置超时限制 timeout 为5s
 	var t int64 = 20
@@ -139,6 +144,8 @@ func (recvr *MsgReceiver) getReceiverInfo() bool {
 	}
 	//fmt.Println(data)
 	recvr.recvData = data
+	log.Print("[Receiver] Get data.Message By EtherscanAPI:", data.Message)
+	//fmt.Println(data.Message)
 	return data.Message == "OK"
 }
 
