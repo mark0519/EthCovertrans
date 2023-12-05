@@ -148,7 +148,7 @@ func newSenderList(times int, psk *ecdsa.PrivateKey, originSender *util.SendAddr
 
 	// 多计算一个以更新合约
 	for i := 1; i < times+1; i++ {
-		senderList[i] = *(util.DerivationSendAddrData(originSender, psk))
+		senderList[i] = *(util.DerivationSendAddrData(&senderList[i-1], psk))
 	}
 	return &senderList
 }
@@ -165,9 +165,7 @@ func doSend(msgSenders *[]MsgSender) {
 	// 发送信息
 	// TODO: 并发数量限制
 	for i := 0; i < len(*msgSenders); i++ {
-		go func(i int) {
-			(*msgSenders)[i].sendETH()
-		}(i)
+		(*msgSenders)[i].sendETH()
 	}
 }
 

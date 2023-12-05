@@ -13,6 +13,9 @@ import (
 // const EthGateway = "https://eth-sepolia.g.alchemy.com/v2/tTrWBB8FMZ7wfeBfv3gjYc7w9-pq_jb2"
 const EthGateway = "wss://eth-sepolia.g.alchemy.com/v2/tTrWBB8FMZ7wfeBfv3gjYc7w9-pq_jb2"
 const FaucetPrivatekeyStr = "983ec812c710bd1a3ef13bfd089cf8c7cf672f8bf17a7b9be51318c8314120aa"
+
+// TODO: 将发出去未被使用的eth还回
+
 const EtherscanAPIKey = "WE5VDDZE6QVKYC194QM44QVUEWUPTCGH8I"
 const EtherscanAPIURL = "https://api-sepolia.etherscan.io/api"
 const MsgSliceLen = 32 // 每次发送的消息比特数

@@ -40,7 +40,7 @@ func Test() {
 	psk := util.NewPrivateKey()
 	senderSK := util.NewPrivateKey()
 	sender := util.InitSendAddrData(senderSK)
-	newPK := TestMsgSenderFactory("hello world!!", psk, sender.GetSendAddrDataPrivateKey())
+	newPK := TestMsgSenderFactory("stone", psk, sender.GetSendAddrDataPrivateKey())
 	msg := MsgRecverFactory(psk, sender.PublicKey, newPK)
-	print("[+] msg:", msg)
+	print("[+] msg:", string(msg))
 }

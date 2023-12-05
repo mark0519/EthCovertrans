@@ -163,7 +163,7 @@ func doRecv(psk *ecdsa.PrivateKey, publicKey *ecdsa.PublicKey) []byte {
 
 func MsgRecverFactory(psk *ecdsa.PrivateKey, orignPublicKey *ecdsa.PublicKey, lastPublicKey *ecdsa.PublicKey) []byte {
 	var msg []byte
-	for derivationKey := util.DerivationPublicKey(orignPublicKey, psk); derivationKey != lastPublicKey; derivationKey = util.DerivationPublicKey(derivationKey, psk) {
+	for derivationKey := util.DerivationPublicKey(orignPublicKey, psk); !derivationKey.Equal(lastPublicKey); derivationKey = util.DerivationPublicKey(derivationKey, psk) {
 		msg = append(msg, doRecv(psk, derivationKey)...)
 		log.Println("[Receiver] Recv Msg:", string(msg))
 	}

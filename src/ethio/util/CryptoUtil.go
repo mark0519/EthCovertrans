@@ -80,7 +80,7 @@ func DerivationPublicKey(oldKey *ecdsa.PublicKey, psk *ecdsa.PrivateKey) *ecdsa.
 }
 
 func NewPrivateKey() *ecdsa.PrivateKey {
-	curve := crypto.S256()
+	curve := secp256k1.S256()
 	privateKey, err := ecdsa.GenerateKey(curve, rand.Reader)
 	if err != nil {
 		panic(err)
