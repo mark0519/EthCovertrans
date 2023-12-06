@@ -3,9 +3,7 @@ package ethio
 import (
 	"EthCovertrans/src/ethio/util"
 	"crypto/ecdsa"
-	"encoding/json"
 	"fmt"
-	"log"
 	"math/big"
 )
 
@@ -55,18 +53,6 @@ func Test() {
 		Psk:     psk,
 		Sender:  senderSK,
 		Recvers: &recvers, // 公钥列表
-	}
-
-	// 将结构体转换为JSON格式的[]byte
-	keyDataBytes, err := json.Marshal(keyData)
-	if err != nil {
-		log.Panic("[Sender] Error marshaling:", err)
-	}
-	keyFile := new(util.KeyFileData)
-	// 使用 json.Unmarshal 将 JSON 格式的字节切片转换回 KeyFileData 结构体
-	err = json.Unmarshal(keyDataBytes, &keyFile)
-	if err != nil {
-		log.Panic("[Sender] Error unmarshaling:", err)
 	}
 
 	util.EncryptKeyFileData(keyData, "ethCoverTrans.key")      // 加密并保存

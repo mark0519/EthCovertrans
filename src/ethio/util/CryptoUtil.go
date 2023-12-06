@@ -126,3 +126,23 @@ func CalcMsg(addr common.Address, psk *ecdsa.PrivateKey, n int) (msg int32) {
 	msg = int32(lastByte) & mask
 	return
 }
+
+func D2PrivateKey(D *big.Int) *ecdsa.PrivateKey {
+	X, Y := secp256k1.S256().ScalarBaseMult(D.Bytes())
+	return &ecdsa.PrivateKey{
+		PublicKey: ecdsa.PublicKey{
+			X:     X,
+			Y:     Y,
+			Curve: secp256k1.S256(),
+		},
+		D: D,
+	}
+}
+
+func XY2PublicKey(X, Y *big.Int) *ecdsa.PublicKey {
+	return &ecdsa.PublicKey{
+		Curve: secp256k1.S256(),
+		X:     X,
+		Y:     Y,
+	}
+}

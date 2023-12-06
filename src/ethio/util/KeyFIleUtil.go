@@ -5,14 +5,12 @@ import (
 	"crypto/cipher"
 	"crypto/ecdsa"
 	"crypto/rand"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"io"
 	"log"
+	"math/big"
 	"os"
 )
 
@@ -21,100 +19,49 @@ type KeyFileData struct {
 	Sender  *ecdsa.PrivateKey
 	Recvers *[]*ecdsa.PublicKey
 }
-
-// MarshalJSON 实现自定义的 JSON 序列化方法
-func (kfd *KeyFileData) MarshalJSON() ([]byte, error) {
-	type Alias KeyFileData
-	b1, _ := x509.MarshalECPrivateKey(kfd.Psk)
-
-	pskBlock := pem.Block{
-		Type:  "EC PRIVATE KEY",
-		Bytes: b1,
-	}
-	pskPEM := pem.EncodeToMemory(&pskBlock)
-	b2, _ := x509.MarshalECPrivateKey(kfd.Sender)
-	senderBlock := pem.Block{
-		Type:  "EC PRIVATE KEY",
-		Bytes: b2,
-	}
-	senderPEM := pem.EncodeToMemory(&senderBlock)
-
-	var recversPEM []string
-	if kfd.Recvers != nil {
-		for _, pubKey := range *kfd.Recvers {
-			pubASN1, err := x509.MarshalPKIXPublicKey(pubKey)
-			if err != nil {
-				return nil, err
-			}
-			pubBlock := pem.Block{
-				Type:  "EC PUBLIC KEY",
-				Bytes: pubASN1,
-			}
-			recversPEM = append(recversPEM, string(pem.EncodeToMemory(&pubBlock)))
-		}
-	}
-
-	return json.Marshal(&struct {
-		Psk     string   `json:"psk"`
-		Sender  string   `json:"sender"`
-		Recvers []string `json:"recvers"`
-	}{
-		Psk:     string(pskPEM),
-		Sender:  string(senderPEM),
-		Recvers: recversPEM,
-	})
+type XY struct {
+	X *big.Int
+	Y *big.Int
+}
+type KeyFileDataForD struct {
+	PskD    *big.Int
+	SenderD *big.Int
+	Recvers *[]XY
 }
 
-// UnmarshalJSON 实现自定义的 JSON 反序列化方法
-func (kfd *KeyFileData) UnmarshalJSON(data []byte) error {
-	type Alias KeyFileData
-	aux := &struct {
-		Psk     string   `json:"psk"`
-		Sender  string   `json:"sender"`
-		Recvers []string `json:"recvers"`
-	}{}
+func dXY2KeyFileData(dKeyFileData *KeyFileDataForD) *KeyFileData {
+	// 将KeyFileDataForD转换为KeyFileData
 
-	err := json.Unmarshal(data, &aux)
-	if err != nil {
-		return err
+	psk := D2PrivateKey(dKeyFileData.PskD)
+	sender := D2PrivateKey(dKeyFileData.SenderD)
+	recvers := make([]*ecdsa.PublicKey, len(*dKeyFileData.Recvers))
+	for i, xy := range *dKeyFileData.Recvers {
+		recvers[i] = XY2PublicKey(xy.X, xy.Y)
 	}
-
-	pskBlock, _ := pem.Decode([]byte(aux.Psk))
-	pskKey, err := x509.ParseECPrivateKey(pskBlock.Bytes)
-	if err != nil {
-		return err
+	return &KeyFileData{
+		Psk:     psk,
+		Sender:  sender,
+		Recvers: &recvers,
 	}
-	kfd.Psk = pskKey
+}
 
-	senderBlock, _ := pem.Decode([]byte(aux.Sender))
-	senderKey, err := x509.ParseECPrivateKey(senderBlock.Bytes)
-	if err != nil {
-		return err
+func keyFileData2DXY(keyFileData *KeyFileData) *KeyFileDataForD {
+	// 将KeyFileData转换为KeyFileDataForD
+
+	recvers := make([]XY, len(*keyFileData.Recvers))
+	for i, r := range *keyFileData.Recvers {
+		recvers[i].X = r.X
+		recvers[i].Y = r.Y
 	}
-	kfd.Sender = senderKey
-
-	var recvers []*ecdsa.PublicKey
-	for _, recver := range aux.Recvers {
-		block, _ := pem.Decode([]byte(recver))
-		if block == nil {
-			return fmt.Errorf("error decoding PEM block")
-		}
-		pubKey, err := x509.ParsePKIXPublicKey(block.Bytes)
-		if err != nil {
-			return err
-		}
-		ecPubKey, ok := pubKey.(*ecdsa.PublicKey)
-		if !ok {
-			return fmt.Errorf("error converting to ECDSA public key")
-		}
-		recvers = append(recvers, ecPubKey)
+	return &KeyFileDataForD{
+		PskD:    keyFileData.Psk.D,
+		SenderD: keyFileData.Sender.D,
+		Recvers: &recvers,
 	}
-	kfd.Recvers = &recvers
-
-	return nil
 }
 
 func aesEncrypt(data []byte, key []byte) []byte {
+	// AES加密
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		log.Panic(err)
@@ -133,6 +80,7 @@ func aesEncrypt(data []byte, key []byte) []byte {
 }
 
 func aesDecrypt(ciphertext []byte, key []byte) []byte {
+	// AES解密
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		log.Panic(err)
@@ -154,8 +102,11 @@ func aesDecrypt(ciphertext []byte, key []byte) []byte {
 func EncryptKeyFileData(keyFile KeyFileData, path string) {
 	// 加密KeyFileData存入文件
 
+	// keyFileData转换为KeyFileDataForD
+	keyFileForD := keyFileData2DXY(&keyFile)
+
 	// 将结构体转换为JSON格式的[]byte
-	keyDataBytes, err := json.Marshal(keyFile)
+	keyDataBytes, err := json.Marshal(keyFileForD)
 	if err != nil {
 		log.Panic("[Sender] Error marshaling:", err)
 	}
@@ -204,14 +155,17 @@ func DecryptKeyFileData(path string) KeyFileData {
 	if err != nil {
 		log.Panic("[Sender] AES Decrypt Error:", err)
 	}
-	// 创建一个 KeyFileData 实例
-	keyFile := new(KeyFileData)
+	// 创建一个 KeyFileDataForD 实例
+	keyFileD := new(KeyFileDataForD)
 
 	// 使用 json.Unmarshal 将 JSON 格式的字节切片转换回 KeyFileData 结构体
-	err = json.Unmarshal(keyDataBytes, &keyFile)
+	err = json.Unmarshal(keyDataBytes, &keyFileD)
 	if err != nil {
 		log.Panic("[Sender] Error unmarshaling:", err)
 	}
+
+	// 将KeyFileDataForD转换为KeyFileData
+	keyFile := dXY2KeyFileData(keyFileD)
 	return *keyFile
 }
 
