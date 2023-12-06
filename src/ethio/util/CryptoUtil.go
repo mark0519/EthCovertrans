@@ -26,6 +26,7 @@ type SendAddrData struct {
 }
 
 func InitSendAddrData(sk *ecdsa.PrivateKey) *SendAddrData {
+	// 私钥转SendAddrData
 	ad := PrivateKeyToAddrData(sk)
 	return &SendAddrData{
 		AddrData:   ad,
@@ -34,11 +35,12 @@ func InitSendAddrData(sk *ecdsa.PrivateKey) *SendAddrData {
 }
 
 func (sad *SendAddrData) GetSendAddrDataPrivateKey() *ecdsa.PrivateKey {
+	// 获取SendAddrData中的私钥
 	return sad.privateKey
 }
 
 func DerivationSendAddrData(oldKey *SendAddrData, psk *ecdsa.PrivateKey) *SendAddrData {
-
+	// SendAddrData派生
 	newKeyInt := new(big.Int).Mul(oldKey.privateKey.D, psk.D)
 	newKeyInt = newKeyInt.Mod(newKeyInt, secp256k1.S256().Params().N)
 	newX, newY := secp256k1.S256().ScalarBaseMult(newKeyInt.Bytes())
@@ -62,6 +64,7 @@ func DerivationSendAddrData(oldKey *SendAddrData, psk *ecdsa.PrivateKey) *SendAd
 }
 
 func PrivateKeyToAddrData(sk *ecdsa.PrivateKey) *AddrData {
+	// 私钥转AddrData
 	pk := sk.Public().(*ecdsa.PublicKey)
 	return &AddrData{
 		PublicKey: pk,
@@ -70,6 +73,7 @@ func PrivateKeyToAddrData(sk *ecdsa.PrivateKey) *AddrData {
 }
 
 func DerivationPublicKey(oldKey *ecdsa.PublicKey, psk *ecdsa.PrivateKey) *ecdsa.PublicKey {
+	// 公钥派生
 	newX, newY := secp256k1.S256().ScalarMult(oldKey.X, oldKey.Y, psk.D.Bytes())
 	newKey := ecdsa.PublicKey{
 		Curve: oldKey.Curve,
@@ -80,6 +84,7 @@ func DerivationPublicKey(oldKey *ecdsa.PublicKey, psk *ecdsa.PrivateKey) *ecdsa.
 }
 
 func NewPrivateKey() *ecdsa.PrivateKey {
+	// 新建随机私钥
 	curve := secp256k1.S256()
 	privateKey, err := ecdsa.GenerateKey(curve, rand.Reader)
 	if err != nil {
@@ -89,6 +94,7 @@ func NewPrivateKey() *ecdsa.PrivateKey {
 }
 
 func newRecvAddrData() *RecvAddrData {
+	// 新建随机RecvAddrData
 	privateKey := NewPrivateKey()
 	publicKey := privateKey.Public().(*ecdsa.PublicKey)
 	return &RecvAddrData{
@@ -100,13 +106,14 @@ func newRecvAddrData() *RecvAddrData {
 }
 
 func InitRecvAddrData(psk *ecdsa.PrivateKey, n int) *RecvAddrData {
+	// 初始化随机RecvAddrData，n为每次发送消息比特数
 	recv := newRecvAddrData()
 	recv.Msg = CalcMsg(recv.Address, psk, n)
 	return recv
 }
 
 func CalcMsg(addr common.Address, psk *ecdsa.PrivateKey, n int) (msg int32) {
-	// 通过哈希计算 地址集合addrList
+	// 计算随机出的RecvAddrData对应的数据，用于与交易金额异或
 	// n为每次发送消息的位数
 	data := []byte(addr.Hex() + string(psk.D.Bytes()))
 	hasher := sha256.New()
@@ -118,4 +125,24 @@ func CalcMsg(addr common.Address, psk *ecdsa.PrivateKey, n int) (msg int32) {
 	mask := int32(1<<n - 1)
 	msg = int32(lastByte) & mask
 	return
+}
+
+func D2PrivateKey(D *big.Int) *ecdsa.PrivateKey {
+	X, Y := secp256k1.S256().ScalarBaseMult(D.Bytes())
+	return &ecdsa.PrivateKey{
+		PublicKey: ecdsa.PublicKey{
+			X:     X,
+			Y:     Y,
+			Curve: secp256k1.S256(),
+		},
+		D: D,
+	}
+}
+
+func XY2PublicKey(X, Y *big.Int) *ecdsa.PublicKey {
+	return &ecdsa.PublicKey{
+		Curve: secp256k1.S256(),
+		X:     X,
+		Y:     Y,
+	}
 }
