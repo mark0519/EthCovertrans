@@ -23,6 +23,7 @@ const KeyFile = ""
 var Client *ethclient.Client
 var FaucetAc *util.SendAddrData
 var passwd string
+var KeyData *util.KeyFileData
 
 func init() {
 	Client = initETHClient()
@@ -39,6 +40,11 @@ func initETHClient() *ethclient.Client {
 	return client
 }
 
-func initKeyData() {
+func initKeyDataFromFile() {
 	// TODO: 加密文件解密,获取 []KeyFileData
+
+}
+func initConfigFile() {
+	// config文件初始化加密
+
 }
