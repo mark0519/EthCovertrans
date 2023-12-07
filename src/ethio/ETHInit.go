@@ -25,8 +25,7 @@ const KeyFile = ""
 
 var Client *ethclient.Client
 var FaucetAc *util.SendAddrData
-var passwd string
-var KeyData *util.KeyFileData
+var KeyData *[]util.KeyFileData
 
 func init() {
 	Client = initETHClient()

@@ -111,6 +111,7 @@ func EncryptKeyFileData(keyFile KeyFileData, path string) {
 		log.Panic("[Sender] Error marshaling:", err)
 	}
 	// 32字节的AES密钥（AES-256）
+	// TODO: 修改密钥获取方式
 	aesKey := []byte("12345678901234567890123456789012")
 
 	encrypted := aesEncrypt(keyDataBytes, aesKey)
@@ -150,6 +151,7 @@ func DecryptKeyFileData(path string) KeyFileData {
 	//fmt.Print(fileBytes)
 	// 解密
 	// 32字节的AES密钥（AES-256）
+	// TODO: 修改密钥获取方式
 	aesKey := []byte("12345678901234567890123456789012")
 	keyDataBytes := aesDecrypt(fileBytes, aesKey)
 	if err != nil {
@@ -169,15 +171,18 @@ func DecryptKeyFileData(path string) KeyFileData {
 	return *keyFile
 }
 
-func GetPskFromFile() *ecdsa.PrivateKey {
+func GenerateKeyFile(fileName string) *ecdsa.PrivateKey {
+	// 首次使用初始化，生成加密密钥文件
 	// 读取psk文件
-	pskData, err := os.ReadFile("psk.txt")
+	pskData, err := os.ReadFile(fileName)
 	if err != nil {
-		log.Fatal("[Sender] Not Found psk.txt(~/EthCovertrans/psk.txt) or psk.txt is empty")
+		log.Fatal("[Sender] Not Found init file")
 	}
+	// TODO: 读取本人私钥
 	// 将读取的字节切片转换为十六进制字符串
 	pskHexStr := string(pskData)
 	psk := crypto.ToECDSAUnsafe(common.FromHex(pskHexStr))
-	//fmt.Print(psk)
+	// TODO: 删除初始化文件
+	// TODO: 与合约交互，注册本人公钥
 	return psk
 }
