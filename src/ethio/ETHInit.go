@@ -14,7 +14,7 @@ import (
 
 // "https://cloudflare-eth.com"
 // const EthGateway = "https://sut0ne.tk/v1/sepolia"
-//const FaucetPrivatekeyStr = "983ec812c710bd1a3ef13bfd089cf8c7cf672f8bf17a7b9be51318c8314120aa"
+// const FaucetPrivatekeyStr = "983ec812c710bd1a3ef13bfd089cf8c7cf672f8bf17a7b9be51318c8314120aa"
 // const EthGateway = "wss://eth-sepolia.g.alchemy.com/v2/tTrWBB8FMZ7wfeBfv3gjYc7w9-pq_jb2"
 // const EtherscanAPIKey = "WE5VDDZE6QVKYC194QM44QVUEWUPTCGH8I"
 // const EtherscanAPIURL = "https://api-sepolia.etherscan.io/api"
@@ -76,6 +76,7 @@ func initKeyDataFromFile() {
 	FaucetPrivatekeyStr = data.Faucet
 	log.Print("[Sender] Get Faucet Private Key: ", FaucetPrivatekeyStr)
 }
+
 func initConfigFile() {
 	// config文件初始化
 	log.Print("[Sender] Loading Config File ... ")
@@ -108,4 +109,5 @@ func initConfigFile() {
 	MsgSliceBytesLen = config.MsgSliceBytesLen
 	ContractAddress = config.ContractAddress
 	KeyFile = config.KeyFile
+	log.Print("[Sender] Config File Loading Completed ")
 }
