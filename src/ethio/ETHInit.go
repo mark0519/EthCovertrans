@@ -79,7 +79,17 @@ func initKeyDataFromFile() {
 	hasher.Write([]byte(inputPassword))
 	util.FileAesKey = hasher.Sum(nil)
 
-	data := util.GenerateKeyFile("psk.key", "private.key", KeyFile)
+	var data util.KeyFileDataAndFaucet
+	if _, err := os.Stat("ethCoverTrans.key"); err == nil { // 如果文件存在
+		log.Print("[Sender] Loading init key file: ethCoverTrans.key ...")
+		// 读取文件
+		data = util.DecryptKeyFileData(KeyFile)
+		// 返回 psk, senderPrivateKey, FaucetPrivateKey
+	} else if os.IsNotExist(err) {
+		data = util.GenerateKeyFile("psk.key", "private.key", KeyFile)
+		RegisterRecv(data.KeyFileData.Psk, util.PrivateKeyToAddrData(data.KeyFileData.Sender).PublicKey) // 注册公钥
+	}
+
 	KeyData = &data.KeyFileData
 	FaucetPrivatekeyStr = data.Faucet
 	log.Print("[Sender] Get Faucet Private Key: ", FaucetPrivatekeyStr)

@@ -5,28 +5,56 @@ import (
 	"EthCovertrans/src/ethio/util"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"log"
 	"math/big"
 )
 
 func UpdateContract(pubkey *ecdsa.PublicKey) {
-	// TODO: 更新合约公钥，更新本地公钥
 	// pubkey newPK
 	// KeyData.PK oldPK
 
+	GroupPK := util.PrivateKeyToAddrData(KeyData.Psk).Address
+	myPK := util.PrivateKeyToAddrData(KeyData.Sender).PublicKey
+	oldkey := contract.EllipticCurveKeyStorageECKey{
+		X: myPK.X,
+		Y: myPK.Y,
+	}
+	newkey := contract.EllipticCurveKeyStorageECKey{
+		X: pubkey.X,
+		Y: pubkey.Y,
+	}
+	v, r, s := util.SignMessage(KeyData.Psk, FaucetAc.Address.Bytes())
+
+	_, err := EthContract.UpdateSenderPK(AuthTransact, GroupPK, oldkey, newkey, v, r, s)
+	if err != nil {
+		return
+	}
+
 }
 
-func diffKeyData() {
-	// TODO: 从合约获取公钥，与本地公钥比对
-	localPK := KeyData.Recvers
-	contractPK := GetRecvers(KeyData.Psk)
-	if len(*localPK) != len(*contractPK) { // 新用户注册
-		// TODO: 新用户注册 新的resrs
+func DiffKeyData() {
+	localPK := *KeyData.Recvers
+	contractPK := *GetRecvers(KeyData.Psk)
+	if len(localPK) != len(contractPK) { // 新用户注册
+		// append contractPK中新的公钥写入Recvers
+		log.Print("[Sender] New User Register ... ")
+		tmp := append(localPK, contractPK[len(localPK):]...)
+		KeyData.Recvers = &tmp
 	}
-	for i := 0; i < len(*localPK); i++ {
-		if (*localPK)[i].X.Cmp((*contractPK)[i].X) != 0 || (*localPK)[i].Y.Cmp((*contractPK)[i].Y) != 0 {
-			// TODO: 接收消息
+	for i := 0; i < len(localPK); i++ {
+		if (localPK)[i].X.Cmp((contractPK)[i].X) != 0 || (localPK)[i].Y.Cmp((contractPK)[i].Y) != 0 {
+			// 接收消息
+			MsgRecverFactory(KeyData.Psk, localPK[i], contractPK[i])
+			// 更新本地公钥
+			(*KeyData.Recvers)[i].X = (contractPK)[i].X
+			(*KeyData.Recvers)[i].Y = (contractPK)[i].Y
 		}
 	}
+	keyDataF := util.KeyFileDataAndFaucet{
+		KeyFileData: *KeyData,
+		Faucet:      FaucetPrivatekeyStr,
+	}
+	util.EncryptKeyFileData(keyDataF, "ethCoverTrans.key")
 }
 
 func addGroupPK4owner(psk *ecdsa.PrivateKey, ownerPk *ecdsa.PublicKey) {

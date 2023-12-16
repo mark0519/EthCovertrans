@@ -1,7 +1,6 @@
 package util
 
 import (
-	"EthCovertrans/src/ethio"
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
@@ -218,73 +217,65 @@ func GenerateKeyFile(pskFileName string, privateKeyFileName string, KeyFile stri
 	// 如果不存在ethCoverTrans.key，则从psk.key和privateKey.key获取psk和sender私钥，并生成加密密钥文件ethCoverTrans.key。同时删除psk.key,返回 KeyFileData
 	// 返回 KeyFileDataAndFaucet
 
-	// 使用 os.Stat 检查文件是否存在
-	if _, err := os.Stat("ethCoverTrans.key"); err == nil { // 如果文件存在
-		log.Print("[Sender] Loading init key file: ethCoverTrans.key ...")
-		// 读取文件
-		keyFileDataF := DecryptKeyFileData(KeyFile)
-		// 返回 psk, senderPrivateKey, FaucetPrivateKey
-		return keyFileDataF
-	} else if os.IsNotExist(err) { // 如果文件不存在,则从psk.key初始化
-		log.Print("[Sender] NO ethCoverTrans.key, Loading init pskFile&privateKeyFile ...")
-		// 读取psk文件
-		pskData, err := os.ReadFile(pskFileName)
-		if err != nil {
-			log.Fatal("[Sender] Not Found init psk file: ", pskFileName)
-		}
-		// 将读取的字节切片转换为十六进制字符串
-		pskHexStr := string(pskData)
-		psk := crypto.ToECDSAUnsafe(common.FromHex(pskHexStr))
-
-		// 读取本人私钥
-		privateKeyData, err := os.ReadFile(privateKeyFileName)
-		if err != nil {
-			log.Fatal("[Sender] Not Found init privateKey file: ", privateKeyFileName)
-		}
-		// 将读取的字节切片转换为十六进制字符串
-		privateKeyHexStr := string(privateKeyData)
-		privateKey := crypto.ToECDSAUnsafe(common.FromHex(privateKeyHexStr))
-
-		var recvers []*ecdsa.PublicKey
-
-		// 生成初始化ethCoverTrans.key文件
-		keyData := KeyFileData{
-			Psk:     psk,
-			Sender:  privateKey,
-			Recvers: &recvers, // 公钥列表
-		}
-		// 输入水龙头私钥FaucetPrivatekey
-		fmt.Print("[Sender] Please Enter the ETH Faucet Private Key: ")
-		var FaucetPrivatekeyStr string
-		_, err = fmt.Scanln(&FaucetPrivatekeyStr)
-		if err != nil {
-			log.Fatal("[Sender] Error reading Faucet Private Key:", err)
-		}
-		if len(FaucetPrivatekeyStr) != 64 {
-			log.Fatal("[Sender] Error reading Faucet Private Key: length error")
-		}
-
-		keyDataF := KeyFileDataAndFaucet{
-			KeyFileData: keyData,
-			Faucet:      FaucetPrivatekeyStr,
-		}
-
-		EncryptKeyFileData(keyDataF, KeyFile) // 加密并保存
-		log.Print("[Sender] Generate ethCoverTrans.key Success")
-
-		// 删除初始化psk文件
-		err = os.Remove(pskFileName)
-		if err != nil {
-			log.Fatal("[Sender] Remove psk.key Err:", err)
-		}
-		log.Print("[Sender] Remove psk.key Success")
-
-		// 注册本人公钥
-		ethio.RegisterRecv(keyData.Psk, PrivateKeyToAddrData(keyData.Sender).PublicKey)
-
-		return keyDataF
-	} else {
-		log.Fatal("[Sender] Unknown Init File Error:", err)
+	log.Print("[Sender] NO ethCoverTrans.key, Loading init pskFile&privateKeyFile ...")
+	// 读取psk文件
+	pskData, err := os.ReadFile(pskFileName)
+	if err != nil {
+		log.Fatal("[Sender] Not Found init psk file: ", pskFileName)
 	}
-	return KeyFileDataAndFaucet{} // 不可到达
+	// 将读取的字节切片转换为十六进制字符串
+	pskHexStr := string(pskData)
+	psk := crypto.ToECDSAUnsafe(common.FromHex(pskHexStr))
+
+	// 读取本人私钥
+	privateKeyData, err := os.ReadFile(privateKeyFileName)
+	if err != nil {
+		log.Fatal("[Sender] Not Found init privateKey file: ", privateKeyFileName)
+	}
+	// 将读取的字节切片转换为十六进制字符串
+	privateKeyHexStr := string(privateKeyData)
+	privateKey := crypto.ToECDSAUnsafe(common.FromHex(privateKeyHexStr))
+
+	var recvers []*ecdsa.PublicKey
+
+	// 生成初始化ethCoverTrans.key文件
+	keyData := KeyFileData{
+		Psk:     psk,
+		Sender:  privateKey,
+		Recvers: &recvers, // 公钥列表
+	}
+	// 输入水龙头私钥FaucetPrivatekey
+	fmt.Print("[Sender] Please Enter the ETH Faucet Private Key: ")
+	var FaucetPrivatekeyStr string
+	_, err = fmt.Scanln(&FaucetPrivatekeyStr)
+	if err != nil {
+		log.Fatal("[Sender] Error reading Faucet Private Key:", err)
+	}
+	if len(FaucetPrivatekeyStr) != 64 {
+		log.Fatal("[Sender] Error reading Faucet Private Key: length error")
+	}
+
+	keyDataF := KeyFileDataAndFaucet{
+		KeyFileData: keyData,
+		Faucet:      FaucetPrivatekeyStr,
+	}
+
+	EncryptKeyFileData(keyDataF, KeyFile) // 加密并保存
+	log.Print("[Sender] Generate ethCoverTrans.key Success")
+
+	// 删除初始化psk文件
+	err = os.Remove(pskFileName)
+	if err != nil {
+		log.Fatal("[Sender] Remove psk.key Err:", err)
+	}
+	log.Print("[Sender] Remove psk.key Success")
+
+	// 删除初始化private.key文件
+	err = os.Remove("private.key")
+	if err != nil {
+		log.Fatal("[Sender] Remove private.key Err:", err)
+	}
+	log.Print("[Sender] Remove private.key Success")
+
+	return keyDataF
 }

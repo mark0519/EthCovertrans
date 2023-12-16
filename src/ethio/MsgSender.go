@@ -163,7 +163,7 @@ func NewRecverList(times int, psk *ecdsa.PrivateKey) *[]util.RecvAddrData {
 
 func DoSend(msgSenders *[]MsgSender) {
 	// 发送信息
-	// TODO: 并发数量限制
+	// todo: 并发数量限制
 	for i := 0; i < len(*msgSenders); i++ {
 		(*msgSenders)[i].sendETH()
 	}
