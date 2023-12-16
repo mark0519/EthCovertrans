@@ -1,11 +1,14 @@
 package util
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/ecdsa"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"io"
@@ -13,6 +16,14 @@ import (
 	"math/big"
 	"os"
 )
+
+// 文件加密密钥（口令的md5）
+var FileAesKey []byte
+
+type KeyFileDataAndFaucet struct {
+	KeyFileData KeyFileData
+	Faucet      string
+}
 
 type KeyFileData struct {
 	Psk     *ecdsa.PrivateKey
@@ -99,31 +110,42 @@ func aesDecrypt(ciphertext []byte, key []byte) []byte {
 	return ciphertext
 }
 
-func EncryptKeyFileData(keyFile KeyFileData, path string) {
+func EncryptKeyFileData(keyFileF KeyFileDataAndFaucet, path string) {
 	// 加密KeyFileData存入文件
 
 	// keyFileData转换为KeyFileDataForD
-	keyFileForD := keyFileData2DXY(&keyFile)
+	keyFileForD := keyFileData2DXY(&keyFileF.KeyFileData)
 
 	// 将结构体转换为JSON格式的[]byte
 	keyDataBytes, err := json.Marshal(keyFileForD)
 	if err != nil {
 		log.Panic("[Sender] Error marshaling:", err)
 	}
-	// 32字节的AES密钥（AES-256）
-	// TODO: 修改密钥获取方式
-	aesKey := []byte("12345678901234567890123456789012")
 
-	encrypted := aesEncrypt(keyDataBytes, aesKey)
+	encData := append([]byte(keyFileF.Faucet), keyDataBytes...)
+
+	// 32字节的AES密钥（AES-256）
+	encrypted := aesEncrypt(encData, FileAesKey)
 	//fmt.Print(encrypted)
 	// 写入文件
-	err = os.WriteFile(path, encrypted, 0777)
+
+	// 计算FileAesKey的sha256并取后4字节作为加密文件头MagicHeader
+	hasher := sha256.New()
+	hasher.Write(FileAesKey)
+	MagicHeader := hasher.Sum(nil)
+	MagicHeader = MagicHeader[len(MagicHeader)-4:]
+
+	// 合并MagicHeader和加密后的数据
+	data := append(MagicHeader, encrypted...)
+
+	// 写入文件
+	err = os.WriteFile(path, data, 0777)
 	if err != nil {
 		log.Panic("Error writing file:", err)
 	}
 }
 
-func DecryptKeyFileData(path string) KeyFileData {
+func DecryptKeyFileData(path string) KeyFileDataAndFaucet {
 	// 从文件读取KeyFileData并解密
 
 	// 读取配置文件
@@ -149,40 +171,117 @@ func DecryptKeyFileData(path string) KeyFileData {
 	}
 	//fmt.Print("===================================")
 	//fmt.Print(fileBytes)
-	// 解密
-	// 32字节的AES密钥（AES-256）
-	// TODO: 修改密钥获取方式
-	aesKey := []byte("12345678901234567890123456789012")
-	keyDataBytes := aesDecrypt(fileBytes, aesKey)
+
+	// 检查口令
+	hasher := sha256.New()
+	hasher.Write(FileAesKey)
+	MagicHeader := hasher.Sum(nil)
+	MagicHeader = MagicHeader[len(MagicHeader)-4:]
+	equal := bytes.Equal(MagicHeader, fileBytes[:4])
+	if !equal {
+		log.Panic("[Sender] Wrong File Password")
+	}
+	// 解密 32字节的AES密钥（AES-256）
+	encData := fileBytes[4:]
+	keyDataBytes := aesDecrypt(encData, FileAesKey)
 	if err != nil {
 		log.Panic("[Sender] AES Decrypt Error:", err)
 	}
+
+	// 从解密后的数据中分离出水龙头私钥
+	faucetPKBytes := keyDataBytes[:64]
+	faucetPK := string(faucetPKBytes)
+
 	// 创建一个 KeyFileDataForD 实例
 	keyFileD := new(KeyFileDataForD)
 
 	// 使用 json.Unmarshal 将 JSON 格式的字节切片转换回 KeyFileData 结构体
-	err = json.Unmarshal(keyDataBytes, &keyFileD)
+	err = json.Unmarshal(keyDataBytes[64:], &keyFileD)
 	if err != nil {
 		log.Panic("[Sender] Error unmarshaling:", err)
 	}
 
 	// 将KeyFileDataForD转换为KeyFileData
 	keyFile := dXY2KeyFileData(keyFileD)
-	return *keyFile
+
+	// 返回 KeyFileDataAndFaucet
+	KeyFileAndF := new(KeyFileDataAndFaucet)
+	KeyFileAndF.KeyFileData = *keyFile
+	KeyFileAndF.Faucet = faucetPK
+	return *KeyFileAndF
 }
 
-func GenerateKeyFile(fileName string) *ecdsa.PrivateKey {
-	// 首次使用初始化，生成加密密钥文件
-	// 读取psk文件
-	pskData, err := os.ReadFile(fileName)
-	if err != nil {
-		log.Fatal("[Sender] Not Found init file")
+func GenerateKeyFile(pskFileName string, privateKeyFileName string, KeyFile string) KeyFileDataAndFaucet {
+	// 初始化KeyFile并返回水龙头私钥
+	// 如果已经存在ethCoverTrans.key，则读取psk和sender私钥, 返回 KeyFileData
+	// 如果不存在ethCoverTrans.key，则从psk.key和privateKey.key获取psk和sender私钥，并生成加密密钥文件ethCoverTrans.key。同时删除psk.key,返回 KeyFileData
+	// 返回 KeyFileDataAndFaucet
+
+	// 使用 os.Stat 检查文件是否存在
+	if _, err := os.Stat("ethCoverTrans.key"); err == nil { // 如果文件存在
+		log.Print("[Sender] Loading init key file: ethCoverTrans.key ...")
+		// 读取文件
+		keyFileDataF := DecryptKeyFileData(KeyFile)
+		// 返回 psk, senderPrivateKey, FaucetPrivateKey
+		return keyFileDataF
+	} else if os.IsNotExist(err) { // 如果文件不存在,则从psk.key初始化
+		log.Print("[Sender] NO ethCoverTrans.key, Loading init pskFile&privateKeyFile ...")
+		// 读取psk文件
+		pskData, err := os.ReadFile(pskFileName)
+		if err != nil {
+			log.Fatal("[Sender] Not Found init psk file: ", pskFileName)
+		}
+		// 将读取的字节切片转换为十六进制字符串
+		pskHexStr := string(pskData)
+		psk := crypto.ToECDSAUnsafe(common.FromHex(pskHexStr))
+
+		// 读取本人私钥
+		privateKeyData, err := os.ReadFile(privateKeyFileName)
+		if err != nil {
+			log.Fatal("[Sender] Not Found init privateKey file: ", privateKeyFileName)
+		}
+		// 将读取的字节切片转换为十六进制字符串
+		privateKeyHexStr := string(privateKeyData)
+		privateKey := crypto.ToECDSAUnsafe(common.FromHex(privateKeyHexStr))
+
+		var recvers []*ecdsa.PublicKey
+
+		// 生成初始化ethCoverTrans.key文件
+		keyData := KeyFileData{
+			Psk:     psk,
+			Sender:  privateKey,
+			Recvers: &recvers, // 公钥列表
+		}
+		// 输入水龙头私钥FaucetPrivatekey
+		fmt.Print("[Sender] Please Enter the ETH Faucet Private Key: ")
+		var FaucetPrivatekeyStr string
+		_, err = fmt.Scanln(&FaucetPrivatekeyStr)
+		if err != nil {
+			log.Panic("[Sender] Error reading Faucet Private Key:", err)
+		}
+		if len(FaucetPrivatekeyStr) != 64 {
+			log.Panic("[Sender] Error reading Faucet Private Key: length error")
+		}
+
+		keyDataF := KeyFileDataAndFaucet{
+			KeyFileData: keyData,
+			Faucet:      FaucetPrivatekeyStr,
+		}
+
+		EncryptKeyFileData(keyDataF, KeyFile) // 加密并保存
+		log.Print("[Sender] Generate ethCoverTrans.key Success")
+
+		// 删除初始化psk文件
+		err = os.Remove(pskFileName)
+		if err != nil {
+			log.Panic("[Sender] Remove psk.key Err:", err)
+		}
+		log.Print("[Sender] Remove psk.key Success")
+		// TODO: 与合约交互，注册本人公钥
+
+		return keyDataF
+	} else {
+		log.Panic("[Sender] Unknown Init File Error:", err)
 	}
-	// TODO: 读取本人私钥
-	// 将读取的字节切片转换为十六进制字符串
-	pskHexStr := string(pskData)
-	psk := crypto.ToECDSAUnsafe(common.FromHex(pskHexStr))
-	// TODO: 删除初始化文件
-	// TODO: 与合约交互，注册本人公钥
-	return psk
+	return KeyFileDataAndFaucet{} // 不可到达
 }
