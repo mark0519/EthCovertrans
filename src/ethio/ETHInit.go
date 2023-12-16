@@ -1,14 +1,18 @@
 package ethio
 
 import (
+	"EthCovertrans/src/ethio/contract"
 	"EthCovertrans/src/ethio/util"
+	"context"
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
+	"math/big"
 	"os"
 )
 
@@ -34,12 +38,16 @@ var KeyFile string
 var Client *ethclient.Client
 var FaucetAc *util.SendAddrData
 var KeyData *util.KeyFileData
+var ChainId *big.Int
+var EthContract *contract.Contract
+var AuthTransact *bind.TransactOpts
 
-func Init() {
+func init() {
 	initConfigFile()         // config初始化 ，必须放在第一个初始化
 	Client = initETHClient() // ETHClient初始化
 	initKeyDataFromFile()    // KeyData初始化 ，必须在Faucet初始化之前
 	initFaucet()             // Faucet 初始化 ，必须在KeyData初始化之后
+	initContract()           // EthContract 初始化
 }
 
 func initFaucet() {
@@ -71,7 +79,7 @@ func initKeyDataFromFile() {
 	hasher.Write([]byte(inputPassword))
 	util.FileAesKey = hasher.Sum(nil)
 
-	data := util.GenerateKeyFile("psk.key", "privateKey.key", KeyFile)
+	data := util.GenerateKeyFile("psk.key", "private.key", KeyFile)
 	KeyData = &data.KeyFileData
 	FaucetPrivatekeyStr = data.Faucet
 	log.Print("[Sender] Get Faucet Private Key: ", FaucetPrivatekeyStr)
@@ -95,6 +103,7 @@ func initConfigFile() {
 		MsgSliceBytesLen int    `json:"MsgSliceBytesLen"`
 		ContractAddress  string `json:"ContractAddress"`
 		KeyFile          string `json:"KeyFile"`
+		ChainId          int    `json:"ChainId"`
 	}
 	// 解析 JSON 数据到结构体
 	var config Config
@@ -109,5 +118,25 @@ func initConfigFile() {
 	MsgSliceBytesLen = config.MsgSliceBytesLen
 	ContractAddress = config.ContractAddress
 	KeyFile = config.KeyFile
+	ChainId = big.NewInt(int64(config.ChainId))
 	log.Print("[Sender] Config File Loading Completed ")
+}
+
+func initContract() {
+	var err error
+	gasPrice, _ := Client.SuggestGasPrice(context.Background())
+	nonce, _ := Client.NonceAt(context.Background(), FaucetAc.Address, nil)
+	AuthTransact, err = bind.NewKeyedTransactorWithChainID(FaucetAc.GetSendAddrDataPrivateKey(), ChainId) // 将链ID替换为相应的链ID
+	if err != nil {
+		log.Fatal(err)
+	}
+	// 设置 gas 限制和 gas 价格
+	AuthTransact.Nonce = new(big.Int).SetUint64(nonce)
+	AuthTransact.GasLimit = uint64(300000)
+	AuthTransact.GasPrice = gasPrice // 1 Gwei
+	// 创建已部署合约的绑定实例
+	EthContract, err = contract.NewContract(common.HexToAddress(ContractAddress), Client)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

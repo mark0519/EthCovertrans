@@ -1,6 +1,7 @@
 package util
 
 import (
+	"EthCovertrans/src/ethio"
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
@@ -75,13 +76,13 @@ func aesEncrypt(data []byte, key []byte) []byte {
 	// AES加密
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 
 	ciphertext := make([]byte, aes.BlockSize+len(data))
 	iv := ciphertext[:aes.BlockSize]
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 
 	stream := cipher.NewCFBEncrypter(block, iv)
@@ -94,11 +95,11 @@ func aesDecrypt(ciphertext []byte, key []byte) []byte {
 	// AES解密
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 
 	if len(ciphertext) < aes.BlockSize {
-		log.Panic("ciphertext too short")
+		log.Fatal("ciphertext too short")
 	}
 
 	iv := ciphertext[:aes.BlockSize]
@@ -119,7 +120,7 @@ func EncryptKeyFileData(keyFileF KeyFileDataAndFaucet, path string) {
 	// 将结构体转换为JSON格式的[]byte
 	keyDataBytes, err := json.Marshal(keyFileForD)
 	if err != nil {
-		log.Panic("[Sender] Error marshaling:", err)
+		log.Fatal("[Sender] Error marshaling:", err)
 	}
 
 	encData := append([]byte(keyFileF.Faucet), keyDataBytes...)
@@ -141,7 +142,7 @@ func EncryptKeyFileData(keyFileF KeyFileDataAndFaucet, path string) {
 	// 写入文件
 	err = os.WriteFile(path, data, 0777)
 	if err != nil {
-		log.Panic("Error writing file:", err)
+		log.Fatal("Error writing file:", err)
 	}
 }
 
@@ -151,14 +152,14 @@ func DecryptKeyFileData(path string) KeyFileDataAndFaucet {
 	// 读取配置文件
 	file, err := os.Open(path)
 	if err != nil {
-		log.Panic("Failed to open config file:", err)
+		log.Fatal("Failed to open config file:", err)
 	}
 	defer file.Close()
 
 	// 获取文件大小
 	stat, err := file.Stat()
 	if err != nil {
-		log.Panic("Failed to get file size:", err)
+		log.Fatal("Failed to get file size:", err)
 	}
 
 	// 分配足够的空间来存储文件内容
@@ -167,7 +168,7 @@ func DecryptKeyFileData(path string) KeyFileDataAndFaucet {
 	// 读取文件内容
 	_, err = io.ReadFull(file, fileBytes)
 	if err != nil {
-		log.Panic("Failed to read file:", err)
+		log.Fatal("Failed to read file:", err)
 	}
 	//fmt.Print("===================================")
 	//fmt.Print(fileBytes)
@@ -179,13 +180,13 @@ func DecryptKeyFileData(path string) KeyFileDataAndFaucet {
 	MagicHeader = MagicHeader[len(MagicHeader)-4:]
 	equal := bytes.Equal(MagicHeader, fileBytes[:4])
 	if !equal {
-		log.Panic("[Sender] Wrong File Password")
+		log.Fatal("[Sender] Wrong File Password")
 	}
 	// 解密 32字节的AES密钥（AES-256）
 	encData := fileBytes[4:]
 	keyDataBytes := aesDecrypt(encData, FileAesKey)
 	if err != nil {
-		log.Panic("[Sender] AES Decrypt Error:", err)
+		log.Fatal("[Sender] AES Decrypt Error:", err)
 	}
 
 	// 从解密后的数据中分离出水龙头私钥
@@ -198,7 +199,7 @@ func DecryptKeyFileData(path string) KeyFileDataAndFaucet {
 	// 使用 json.Unmarshal 将 JSON 格式的字节切片转换回 KeyFileData 结构体
 	err = json.Unmarshal(keyDataBytes[64:], &keyFileD)
 	if err != nil {
-		log.Panic("[Sender] Error unmarshaling:", err)
+		log.Fatal("[Sender] Error unmarshaling:", err)
 	}
 
 	// 将KeyFileDataForD转换为KeyFileData
@@ -257,10 +258,10 @@ func GenerateKeyFile(pskFileName string, privateKeyFileName string, KeyFile stri
 		var FaucetPrivatekeyStr string
 		_, err = fmt.Scanln(&FaucetPrivatekeyStr)
 		if err != nil {
-			log.Panic("[Sender] Error reading Faucet Private Key:", err)
+			log.Fatal("[Sender] Error reading Faucet Private Key:", err)
 		}
 		if len(FaucetPrivatekeyStr) != 64 {
-			log.Panic("[Sender] Error reading Faucet Private Key: length error")
+			log.Fatal("[Sender] Error reading Faucet Private Key: length error")
 		}
 
 		keyDataF := KeyFileDataAndFaucet{
@@ -274,14 +275,16 @@ func GenerateKeyFile(pskFileName string, privateKeyFileName string, KeyFile stri
 		// 删除初始化psk文件
 		err = os.Remove(pskFileName)
 		if err != nil {
-			log.Panic("[Sender] Remove psk.key Err:", err)
+			log.Fatal("[Sender] Remove psk.key Err:", err)
 		}
 		log.Print("[Sender] Remove psk.key Success")
-		// TODO: 与合约交互，注册本人公钥
+
+		// 注册本人公钥
+		ethio.RegisterRecv(keyData.Psk, PrivateKeyToAddrData(keyData.Sender).PublicKey)
 
 		return keyDataF
 	} else {
-		log.Panic("[Sender] Unknown Init File Error:", err)
+		log.Fatal("[Sender] Unknown Init File Error:", err)
 	}
 	return KeyFileDataAndFaucet{} // 不可到达
 }

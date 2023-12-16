@@ -7,6 +7,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
+	"golang.org/x/crypto/sha3"
+	"log"
 	"math/big"
 )
 
@@ -14,7 +16,6 @@ type AddrData struct {
 	PublicKey *ecdsa.PublicKey
 	Address   common.Address
 }
-
 type RecvAddrData struct {
 	*AddrData
 	Msg int32
@@ -85,7 +86,7 @@ func DerivationPublicKey(oldKey *ecdsa.PublicKey, psk *ecdsa.PrivateKey) *ecdsa.
 
 func NewPrivateKey() *ecdsa.PrivateKey {
 	// 新建随机私钥
-	curve := secp256k1.S256()
+	curve := crypto.S256()
 	privateKey, err := ecdsa.GenerateKey(curve, rand.Reader)
 	if err != nil {
 		panic(err)
@@ -128,12 +129,12 @@ func CalcMsg(addr common.Address, psk *ecdsa.PrivateKey, n int) (msg int32) {
 }
 
 func D2PrivateKey(D *big.Int) *ecdsa.PrivateKey {
-	X, Y := secp256k1.S256().ScalarBaseMult(D.Bytes())
+	X, Y := crypto.S256().ScalarBaseMult(D.Bytes())
 	return &ecdsa.PrivateKey{
 		PublicKey: ecdsa.PublicKey{
 			X:     X,
 			Y:     Y,
-			Curve: secp256k1.S256(),
+			Curve: crypto.S256(),
 		},
 		D: D,
 	}
@@ -141,8 +142,26 @@ func D2PrivateKey(D *big.Int) *ecdsa.PrivateKey {
 
 func XY2PublicKey(X, Y *big.Int) *ecdsa.PublicKey {
 	return &ecdsa.PublicKey{
-		Curve: secp256k1.S256(),
+		Curve: crypto.S256(),
 		X:     X,
 		Y:     Y,
 	}
+}
+
+func SignMessage(privateKey *ecdsa.PrivateKey, message []byte) (uint8, [32]byte, [32]byte) {
+	// 计算哈希值
+	hash := sha3.NewLegacyKeccak256()
+	hash.Write(message)
+	hashed := hash.Sum(nil)
+
+	// 签名
+	sig, err := crypto.Sign(hashed, privateKey)
+	r := [32]byte(sig[:32])
+	s := [32]byte(sig[32:64])
+	v := sig[64] + 27
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	return v, r, s
 }

@@ -4,7 +4,8 @@
   "EtherscanAPIURL": "https://api-sepolia.etherscan.io/api",
   "MsgSliceLen": 32,
   "MsgSliceBytesLen": 4,
-  "ContractAddress": "0x7d54615Cb5f7d30d244b0F6cC8BB0681D42236bD",
-  "KeyFile": "ethCoverTrans.key"
+  "ContractAddress": "0x459c237cd20019b852d17c049c2cfb1744673bc8",
+  "KeyFile": "ethCoverTrans.key",
+  "ChainId": 11155111
 }
 

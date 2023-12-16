@@ -50,7 +50,7 @@ func (msdr *MsgSender) initSenderBalance() {
 	}
 }
 
-func newMsgSender(send *util.SendAddrData, recv *util.RecvAddrData, value *big.Int) (msdr *MsgSender) {
+func NewMsgSender(send *util.SendAddrData, recv *util.RecvAddrData, value *big.Int) (msdr *MsgSender) {
 	msdr = new(MsgSender)
 	// 发送方地址初始化
 	msdr.sendAc = send
@@ -141,7 +141,7 @@ func createTx(fromAC *util.SendAddrData, toAC *util.AddrData, value *big.Int) st
 	return signedTx.Hash().Hex()
 }
 
-func newSenderList(times int, psk *ecdsa.PrivateKey, originSender *util.SendAddrData) *[]util.SendAddrData {
+func NewSenderList(times int, psk *ecdsa.PrivateKey, originSender *util.SendAddrData) *[]util.SendAddrData {
 	// 创建发送者列表
 	senderList := make([]util.SendAddrData, times+1)
 	senderList[0] = *(util.DerivationSendAddrData(originSender, psk))
@@ -153,7 +153,7 @@ func newSenderList(times int, psk *ecdsa.PrivateKey, originSender *util.SendAddr
 	return &senderList
 }
 
-func newRecverList(times int, psk *ecdsa.PrivateKey) *[]util.RecvAddrData {
+func NewRecverList(times int, psk *ecdsa.PrivateKey) *[]util.RecvAddrData {
 	recverList := make([]util.RecvAddrData, times)
 	for i := 0; i < times; i++ {
 		recverList[i] = *(util.InitRecvAddrData(psk, MsgSliceLen))
@@ -161,7 +161,7 @@ func newRecverList(times int, psk *ecdsa.PrivateKey) *[]util.RecvAddrData {
 	return &recverList
 }
 
-func doSend(msgSenders *[]MsgSender) {
+func DoSend(msgSenders *[]MsgSender) {
 	// 发送信息
 	// TODO: 并发数量限制
 	for i := 0; i < len(*msgSenders); i++ {
@@ -172,22 +172,22 @@ func doSend(msgSenders *[]MsgSender) {
 func MsgSenderFactory(msgstr string, psk *ecdsa.PrivateKey, orignSenderSK *ecdsa.PrivateKey) {
 	// 创建ETHSender实例
 
-	msgIntSlice := sliceMsg(msgstr)
+	msgIntSlice := SliceMsg(msgstr)
 	var times = len(msgIntSlice)
 	orignSender := util.InitSendAddrData(orignSenderSK)
-	senders := *newSenderList(times, psk, orignSender)
-	recvers := *newRecverList(times, psk)
+	senders := *NewSenderList(times, psk, orignSender)
+	recvers := *NewRecverList(times, psk)
 
 	msgSenders := make([]MsgSender, times)
 	for i := 0; i < times; i++ {
-		msgSenders[i] = *newMsgSender(&(senders)[i], &(recvers)[i], big.NewInt(int64(recvers[i].Msg^msgIntSlice[i])))
+		msgSenders[i] = *NewMsgSender(&(senders)[i], &(recvers)[i], big.NewInt(int64(recvers[i].Msg^msgIntSlice[i])))
 	}
 
-	doSend(&msgSenders)
-	defer util.UpdateContract(senders[times].PublicKey)
+	DoSend(&msgSenders)
+	defer UpdateContract(senders[times].PublicKey)
 }
 
-func sliceMsg(msg string) []int32 {
+func SliceMsg(msg string) []int32 {
 	msgByteSlice := []byte(msg)
 	if len(msgByteSlice)%MsgSliceBytesLen != 0 {
 		padding := 4 - len(msgByteSlice)%MsgSliceBytesLen
