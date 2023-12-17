@@ -33,7 +33,8 @@ type ApiData struct {
 type MsgReceiver struct {
 	recvAc    *util.AddrData
 	recvData  *ApiData
-	latestIdx int // 查找到的最新的一笔交易的idx
+	latestIdx int  // 查找到的最新的一笔交易的idx
+	msgend    bool // 本次消息接收是否结束
 }
 
 func NewMsgReceiver(publicKey *ecdsa.PublicKey) (recvr *MsgReceiver) {
@@ -46,9 +47,13 @@ func NewMsgReceiver(publicKey *ecdsa.PublicKey) (recvr *MsgReceiver) {
 
 	recvr.latestIdx = -1
 	for recvr.latestIdx == -1 {
-		recvr.waitForInfo()
-		recvr.getLatestTransIdx()
-		time.Sleep(5 * time.Second)
+		recvr.msgend = recvr.waitForInfo()
+		if recvr.msgend {
+			recvr.getLatestTransIdx()
+			time.Sleep(5 * time.Second)
+		} else {
+			break
+		}
 	}
 	return
 }
@@ -93,18 +98,25 @@ func (recvr *MsgReceiver) getLatestTransIdx() {
 	}
 }
 
-func (recvr *MsgReceiver) waitForInfo() {
-	// API限制5s一次，等待5s
-	for {
-		if recvr.getReceiverInfo() {
-			break
+func (recvr *MsgReceiver) waitForInfo() bool {
+	// API限制5s一次，等待5s，尝试5次
+	for i := 0; i < 5; i++ {
+		msg := recvr.getReceiverInfo()
+		if msg == "OK" {
+			return true
+		} else if msg == "No transactions found" {
+			log.Println("[Receiver] Get nothing by EtherscanAPI")
+			return false
+		} else {
+			log.Println("[Receiver] Get receiver Info By EtherscanAPI Failed, Retry in 5s ...")
+			time.Sleep(5 * time.Second)
 		}
-		log.Println("[Receiver] Get Receiver Info By EtherscanAPI Failed, Retry in 5s ...")
-		time.Sleep(5 * time.Second)
 	}
+	log.Fatal("[Receiver] Unable to get receiver info by EtherscanAPI")
+	return false
 }
 
-func (recvr *MsgReceiver) getReceiverInfo() bool {
+func (recvr *MsgReceiver) getReceiverInfo() string {
 	// 向EtherscanAPI查询addr的所有发出交易
 
 	// 初始化请求
@@ -146,19 +158,25 @@ func (recvr *MsgReceiver) getReceiverInfo() bool {
 	recvr.recvData = data
 	log.Print("[Receiver] Get data.Message By EtherscanAPI:", data.Message)
 	//fmt.Println(data.Message)
-	return data.Message == "OK"
+	return data.Message
 }
 
 func doRecv(psk *ecdsa.PrivateKey, publicKey *ecdsa.PublicKey) []byte {
 
 	recver := NewMsgReceiver(publicKey)
-	value := recver.GetLatestTransValue()
-	toAddr := recver.GetLatestToAddress()
-	orignMsg := util.CalcMsg(toAddr, psk, MsgSliceLen)
-	msgInt := orignMsg ^ int32(value.Int64())
-	msg := make([]byte, MsgSliceLen)
-	binary.LittleEndian.PutUint32(msg, uint32(msgInt))
-	return msg
+	if recver.msgend {
+		value := recver.GetLatestTransValue()
+		toAddr := recver.GetLatestToAddress()
+		orignMsg := util.CalcMsg(toAddr, psk, MsgSliceLen)
+		msgInt := orignMsg ^ int32(value.Int64())
+		msg := make([]byte, MsgSliceLen)
+		binary.LittleEndian.PutUint32(msg, uint32(msgInt))
+		return msg
+	} else {
+		log.Println("[Receiver] This message end!!")
+		return []byte("|")
+	}
+
 }
 
 func MsgRecverFactory(psk *ecdsa.PrivateKey, orignPublicKey *ecdsa.PublicKey, lastPublicKey *ecdsa.PublicKey) []byte {
