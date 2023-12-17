@@ -10,7 +10,7 @@ import (
 	"math/big"
 )
 
-func UpdateContract(oldSendAddrData util.SendAddrData) {
+func UpdateContract(newSendAddrData util.SendAddrData) {
 	// pubkey newPK
 	// KeyData.PK oldPK
 
@@ -21,8 +21,8 @@ func UpdateContract(oldSendAddrData util.SendAddrData) {
 		Y: myPK.Y,
 	}
 	newkey := contract.EllipticCurveKeyStorageECKey{
-		X: oldSendAddrData.PublicKey.X,
-		Y: oldSendAddrData.PublicKey.Y,
+		X: newSendAddrData.PublicKey.X,
+		Y: newSendAddrData.PublicKey.Y,
 	}
 	v, r, s := util.SignMessage(KeyData.Psk, FaucetAc.Address.Bytes())
 
@@ -33,33 +33,38 @@ func UpdateContract(oldSendAddrData util.SendAddrData) {
 		log.Fatal("[Sender] UpdateContract Error: ", err)
 	}
 	log.Printf("[Sender] UpdateContract Success")
-	KeyData.Sender = oldSendAddrData.GetSendAddrDataPrivateKey()
+	KeyData.Sender = newSendAddrData.GetSendAddrDataPrivateKey()
+	keyDataF := util.KeyFileDataAndFaucet{
+		KeyFileData: *KeyData,
+		Faucet:      FaucetPrivatekeyStr,
+	}
+	util.EncryptKeyFileData(keyDataF, "ethCoverTrans.key")
 	log.Printf("[Sender] Local sendersk update Success")
 }
 
-//func ForceUpdateContract() {
-//	// pubkey newPK
-//	// KeyData.PK oldPK
-//
-//	GroupPK := util.PrivateKeyToAddrData(KeyData.Psk).Address
-//	ctkey := (*GetRecvers(KeyData.Psk))[1]
-//	myPK := util.PrivateKeyToAddrData(KeyData.Sender).PublicKey
-//	oldkey := contract.EllipticCurveKeyStorageECKey{
-//		X: ctkey.X,
-//		Y: ctkey.Y,
-//	}
-//	newkey := contract.EllipticCurveKeyStorageECKey{
-//		X: myPK.X,
-//		Y: myPK.Y,
-//	}
-//	v, r, s := util.SignMessage(KeyData.Psk, FaucetAc.Address.Bytes())
-//
-//	_, err := EthContract.UpdateSenderPK(AuthTransact, GroupPK, oldkey, newkey, v, r, s)
-//	if err != nil {
-//		log.Fatal("[Sender] UpdateContract Error: ", err)
-//	}
-//	log.Printf("[Sender] UpdateContract Success ... ")
-//}
+func ForceUpdateContract() {
+	// 仅供调试使用
+
+	id := 2 // 本地私钥对应公钥在合约上的位置
+	GroupPK := util.PrivateKeyToAddrData(KeyData.Psk).Address
+	ctkey := (*GetRecvers(KeyData.Psk))[id]
+	myPK := util.PrivateKeyToAddrData(KeyData.Sender).PublicKey
+	oldkey := contract.EllipticCurveKeyStorageECKey{
+		X: ctkey.X,
+		Y: ctkey.Y,
+	}
+	newkey := contract.EllipticCurveKeyStorageECKey{
+		X: myPK.X,
+		Y: myPK.Y,
+	}
+	v, r, s := util.SignMessage(KeyData.Psk, FaucetAc.Address.Bytes())
+
+	_, err := EthContract.UpdateSenderPK(AuthTransact, GroupPK, oldkey, newkey, v, r, s)
+	if err != nil {
+		log.Fatal("[Sender] UpdateContract Error: ", err)
+	}
+	log.Printf("[Sender] UpdateContract Success ... ")
+}
 
 func ForceUpdateLocal() {
 	localPK := *KeyData.Recvers
@@ -165,4 +170,5 @@ func RegisterRecv() {
 	if err != nil {
 		return
 	}
+	log.Print("[Sender] Register Success ... ")
 }
