@@ -48,7 +48,6 @@ func init() {
 	initKeyDataFromFile()    // KeyData初始化 ，必须在Faucet初始化之前
 	initFaucet()             // Faucet 初始化 ，必须在KeyData初始化之后
 	initContract()           // EthContract 初始化
-	//RegisterRecv()         // 首次使用需注册公钥
 }
 
 func initFaucet() {

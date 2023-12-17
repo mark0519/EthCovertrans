@@ -18,9 +18,11 @@ func listener() {
 func main() {
 	// 检查参数的数量
 	if len(os.Args) < 2 || len(os.Args) > 3 {
-		fmt.Println("Usage for send: EthConvertrans -s <your_msg>")
-		fmt.Println("Usage for recv: EthConvertrans -r")
-		fmt.Println("Usage for force update local recvs: EthConvertrans -f")
+		fmt.Println("EthCovertrans Usage:")
+		fmt.Println("	Usage for register: EthConvertrans -r")
+		fmt.Println("	Usage for listening: EthConvertrans -l")
+		fmt.Println("	Usage for send message: EthConvertrans -s <your_msg>")
+		fmt.Println("	Usage for force update history: EthConvertrans -f")
 		os.Exit(1)
 	}
 
@@ -38,13 +40,15 @@ func main() {
 				fmt.Println("Missing value for -s")
 				os.Exit(1)
 			}
-		case "-r":
+		case "-l":
 			// 接收消息
 			listener()
 		case "-f":
 			// 强制修改本地公钥
 			ethio.ForceUpdateLocal()
-
+		case "-r":
+			// 注册本地公钥
+			ethio.RegisterRecv()
 		}
 
 	}
