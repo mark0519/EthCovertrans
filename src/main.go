@@ -3,88 +3,49 @@ package main
 import (
 	"EthCovertrans/src/ethio"
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"time"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "EthCovertrans",
-	Short: "EthCovertrans",
-	Run: func(cmd *cobra.Command, args []string) {
-
-	},
-}
-
-var sendCmd = &cobra.Command{
-	Use:   "send",
-	Short: "Send command",
-	Long:  `This command sends something.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		funcSend()
-	},
-}
-
-var recvCmd = &cobra.Command{
-	Use:   "recv",
-	Short: "recv command",
-	Long:  `This command recv something.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		funcRecver()
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(sendCmd)
-	rootCmd.AddCommand(recvCmd)
-}
-
-func funcSend() { // 发送消息
-	fmt.Println("Executing func1()")
-}
-
-func funcRecver() { // 接收消息
-	fmt.Println("Executing func2()")
-}
-
-func main() {
-	var rootCmd = &cobra.Command{
-		Use:   "EthCovertrans",
-		Short: "EthCovertrans",
-		Run: func(cmd *cobra.Command, args []string) {
-			// 显示帮助信息
-			_ = cmd.Help()
-		},
-	}
-
-	var sendCmd = &cobra.Command{
-		Use:   "send",
-		Short: "Send data",
-		Run: func(cmd *cobra.Command, args []string) {
-			funcSend()
-		},
-	}
-
-	var recvCmd = &cobra.Command{
-		Use:   "recv",
-		Short: "Receive data",
-		Run: func(cmd *cobra.Command, args []string) {
-			funcRecver()
-		},
-	}
-
-	rootCmd.AddCommand(sendCmd)
-	rootCmd.AddCommand(recvCmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-}
-
-func Listener() {
+func listener() {
+	// 监听消息
 	for {
 		ethio.DiffKeyData()
 		time.Sleep(30 * time.Second)
+	}
+}
+
+func main() {
+	// 检查参数的数量
+	if len(os.Args) < 2 || len(os.Args) > 3 {
+		fmt.Println("Usage for send: EthConvertrans -s <your_msg>")
+		fmt.Println("Usage for recv: EthConvertrans -r")
+		fmt.Println("Usage for force update local recvs: EthConvertrans -f")
+		os.Exit(1)
+	}
+
+	// 遍历参数
+	for i := 1; i < len(os.Args); i++ {
+		arg := os.Args[i]
+		switch arg {
+		case "-s":
+			// 检查下一个参数是否存在
+			if i+1 < len(os.Args) {
+				// 发送消息
+				msg := os.Args[i+1]
+				ethio.MsgSenderFactory(msg, ethio.KeyData.Psk, ethio.KeyData.Sender)
+			} else {
+				fmt.Println("Missing value for -s")
+				os.Exit(1)
+			}
+		case "-r":
+			// 接收消息
+			listener()
+		case "-f":
+			// 强制修改本地公钥
+			ethio.ForceUpdateLocal()
+
+		}
+
 	}
 }

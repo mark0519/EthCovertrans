@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"golang.org/x/crypto/sha3"
 	"log"
 	"math/big"
@@ -43,9 +42,9 @@ func (sad *SendAddrData) GetSendAddrDataPrivateKey() *ecdsa.PrivateKey {
 func DerivationSendAddrData(oldKey *SendAddrData, psk *ecdsa.PrivateKey) *SendAddrData {
 	// SendAddrData派生
 	newKeyInt := new(big.Int).Mul(oldKey.privateKey.D, psk.D)
-	newKeyInt = newKeyInt.Mod(newKeyInt, secp256k1.S256().Params().N)
-	newX, newY := secp256k1.S256().ScalarBaseMult(newKeyInt.Bytes())
-	curve := secp256k1.S256()
+	newKeyInt = newKeyInt.Mod(newKeyInt, crypto.S256().Params().N)
+	newX, newY := crypto.S256().ScalarBaseMult(newKeyInt.Bytes())
+	curve := crypto.S256()
 	newPublicKey := ecdsa.PublicKey{
 		Curve: curve,
 		X:     newX,
@@ -75,7 +74,7 @@ func PrivateKeyToAddrData(sk *ecdsa.PrivateKey) *AddrData {
 
 func DerivationPublicKey(oldKey *ecdsa.PublicKey, psk *ecdsa.PrivateKey) *ecdsa.PublicKey {
 	// 公钥派生
-	newX, newY := secp256k1.S256().ScalarMult(oldKey.X, oldKey.Y, psk.D.Bytes())
+	newX, newY := crypto.S256().ScalarMult(oldKey.X, oldKey.Y, psk.D.Bytes())
 	newKey := ecdsa.PublicKey{
 		Curve: oldKey.Curve,
 		X:     newX,

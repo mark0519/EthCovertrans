@@ -4,28 +4,7 @@ import (
 	"EthCovertrans/src/ethio/util"
 	"crypto/ecdsa"
 	"fmt"
-	"math/big"
 )
-
-func TestMsgSenderFactory(msgstr string, psk *ecdsa.PrivateKey, orignSenderSK *ecdsa.PrivateKey) *ecdsa.PublicKey {
-	// 创建ETHSender实例
-
-	msgIntSlice := SliceMsg(msgstr)
-	var times = len(msgIntSlice)
-	orignSender := util.InitSendAddrData(orignSenderSK)
-	senders := *NewSenderList(times, psk, orignSender)
-	recvers := *NewRecverList(times, psk)
-
-	msgSenders := make([]MsgSender, times)
-	for i := 0; i < times; i++ {
-		msgSenders[i] = *NewMsgSender(&(senders)[i], &(recvers)[i], big.NewInt(int64(recvers[i].Msg^msgIntSlice[i])))
-	}
-
-	DoSend(&msgSenders)
-	defer UpdateContract(senders[times].PublicKey)
-
-	return senders[times].PublicKey
-}
 
 func Test() {
 	//// 首次使用时初始化

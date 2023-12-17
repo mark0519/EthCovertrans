@@ -40,8 +40,8 @@ func (msdr *MsgSender) initSenderBalance() {
 		log.Printf("[Sender] Sender Balance == 0 wei")
 		log.Printf("[Sender] Request Faucets ...")
 
-		// 请求faucet，获得400000000000000单位wei，返回交易哈希
-		gas := big.NewInt(10000000000000000)
+		// 请求faucet，获得1000000000000000单位wei，返回交易哈希
+		gas := big.NewInt(1000000000000000)
 		txHash := msdr.supplyFromFaucet(gas)
 		log.Printf("[Sender] Request Faucets TxHash: %s\n", txHash)
 		waitForTx(txHash)
@@ -184,7 +184,11 @@ func MsgSenderFactory(msgstr string, psk *ecdsa.PrivateKey, orignSenderSK *ecdsa
 	}
 
 	DoSend(&msgSenders)
-	defer UpdateContract(senders[times].PublicKey)
+	log.Print("[Sender] Send msg Success:", msgstr)
+
+	// 更新本地sender私钥
+	// 更新合约公钥
+	UpdateContract(senders[times])
 }
 
 func SliceMsg(msg string) []int32 {

@@ -48,6 +48,7 @@ func init() {
 	initKeyDataFromFile()    // KeyData初始化 ，必须在Faucet初始化之前
 	initFaucet()             // Faucet 初始化 ，必须在KeyData初始化之后
 	initContract()           // EthContract 初始化
+	//RegisterRecv()         // 首次使用需注册公钥
 }
 
 func initFaucet() {
@@ -80,6 +81,7 @@ func initKeyDataFromFile() {
 	util.FileAesKey = hasher.Sum(nil)
 
 	var data util.KeyFileDataAndFaucet
+
 	if _, err := os.Stat("ethCoverTrans.key"); err == nil { // 如果文件存在
 		log.Print("[Sender] Loading init key file: ethCoverTrans.key ...")
 		// 读取文件
@@ -87,12 +89,10 @@ func initKeyDataFromFile() {
 		// 返回 psk, senderPrivateKey, FaucetPrivateKey
 	} else if os.IsNotExist(err) {
 		data = util.GenerateKeyFile("psk.key", "private.key", KeyFile)
-		RegisterRecv(data.KeyFileData.Psk, util.PrivateKeyToAddrData(data.KeyFileData.Sender).PublicKey) // 注册公钥
 	}
-
-	KeyData = &data.KeyFileData
 	FaucetPrivatekeyStr = data.Faucet
-	log.Print("[Sender] Get Faucet Private Key: ", FaucetPrivatekeyStr)
+	KeyData = &data.KeyFileData
+
 }
 
 func initConfigFile() {
@@ -135,13 +135,11 @@ func initConfigFile() {
 func initContract() {
 	var err error
 	gasPrice, _ := Client.SuggestGasPrice(context.Background())
-	nonce, _ := Client.NonceAt(context.Background(), FaucetAc.Address, nil)
 	AuthTransact, err = bind.NewKeyedTransactorWithChainID(FaucetAc.GetSendAddrDataPrivateKey(), ChainId) // 将链ID替换为相应的链ID
 	if err != nil {
 		log.Fatal(err)
 	}
 	// 设置 gas 限制和 gas 价格
-	AuthTransact.Nonce = new(big.Int).SetUint64(nonce)
 	AuthTransact.GasLimit = uint64(300000)
 	AuthTransact.GasPrice = gasPrice // 1 Gwei
 	// 创建已部署合约的绑定实例

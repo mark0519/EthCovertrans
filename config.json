@@ -1,7 +1,7 @@
 {
   "EthGateway": "wss://eth-sepolia.g.alchemy.com/v2/tTrWBB8FMZ7wfeBfv3gjYc7w9-pq_jb2",
   "EtherscanAPIKey": "WE5VDDZE6QVKYC194QM44QVUEWUPTCGH8I",
-  "EtherscanAPIURL": "https://api-sepolia.etherscan.io/api",
+  "EtherscanAPIURL": "http://api-sepolia.etherscan.io/api",
   "MsgSliceLen": 32,
   "MsgSliceBytesLen": 4,
   "ContractAddress": "0x459c237cd20019b852d17c049c2cfb1744673bc8",
